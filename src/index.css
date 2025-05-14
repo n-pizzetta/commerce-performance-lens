@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -98,4 +99,12 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.dashboard-card {
+  @apply bg-white rounded-lg shadow-sm p-5 border border-gray-100;
+}
+
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-dashboard-blue to-dashboard-purple;
 }
