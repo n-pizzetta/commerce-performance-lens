@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import KpiCard from '@/components/KpiCard';
@@ -223,14 +222,17 @@ const BusinessOverview: React.FC = () => {
       
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <BarChart 
-          title="Top 10 Catégories par Chiffre d'Affaires"
-          data={[...categories].sort((a, b) => b.revenue - a.revenue).slice(0, 10)}
-          xAxisDataKey="name"
-          bars={[
-            { dataKey: "revenue", name: "Chiffre d'affaires", fill: "#8b5cf6" }
-          ]}
-        />
+        <div>
+          <h3 className="text-lg font-medium mb-4">Top 10 Catégories par Chiffre d'Affaires</h3>
+          <BarChart 
+            data={[...categories].sort((a, b) => b.revenue - a.revenue).slice(0, 10)}
+            xAxisDataKey="name"
+            bars={[
+              { dataKey: "revenue", name: "Chiffre d'affaires", fill: "#8b5cf6" }
+            ]}
+          />
+        </div>
+        
         <PieChart 
           title="Répartition des Ventes par Région"
           data={regions.map(region => ({
@@ -241,15 +243,17 @@ const BusinessOverview: React.FC = () => {
       </div>
       
       <div className="grid grid-cols-1 gap-6">
-        <LineChart 
-          title="Évolution Mensuelle des Commandes"
-          data={monthly}
-          xAxisDataKey="month"
-          lines={[
-            { dataKey: "orders", name: "Commandes", stroke: "#8b5cf6" },
-            { dataKey: "revenue", name: "Chiffre d'affaires", stroke: "#0ea5e9", yAxisId: "right" }
-          ]}
-        />
+        <div>
+          <h3 className="text-lg font-medium mb-4">Évolution Mensuelle des Commandes</h3>
+          <LineChart 
+            data={monthly}
+            xAxisDataKey="month"
+            lines={[
+              { dataKey: "orders", name: "Commandes", stroke: "#8b5cf6" },
+              { dataKey: "revenue", name: "Chiffre d'affaires", stroke: "#0ea5e9" }
+            ]}
+          />
+        </div>
       </div>
     </DashboardLayout>
   );
