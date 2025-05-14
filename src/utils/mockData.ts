@@ -1,4 +1,79 @@
+export interface Customer {
+  customer_id: string;
+  customer_unique_id: string;
+  customer_zip_code_prefix: string;
+  customer_city: string;
+  customer_state: string;
+}
 
+export interface Geolocation {
+  geolocation_zip_code_prefix: string;
+  geolocation_lat: number;
+  geolocation_lng: number;
+  geolocation_city: string;
+  geolocation_state: string;
+}
+
+export interface OrderItem {
+  order_id: string;
+  order_item_id: number;
+  product_id: string;
+  seller_id: string;
+  shipping_limit_date: string;
+  price: number;
+  freight_value: number;
+}
+
+export interface OrderPayment {
+  order_id: string;
+  payment_sequential: number;
+  payment_type: string;
+  payment_installments: number;
+  payment_value: number;
+}
+
+export interface OrderReview {
+  review_id: string;
+  order_id: string;
+  review_score: number;
+  review_comment_title: string;
+  review_comment_message: string;
+  review_creation_date: string;
+  review_answer_timestamp: string;
+}
+
+export interface Order {
+  order_id: string;
+  customer_id: string;
+  order_status: string;
+  order_purchase_timestamp: string;
+  order_approved_at: string;
+  order_delivered_carrier_date: string;
+  order_delivered_customer_date: string;
+  order_estimated_delivery_date: string;
+}
+
+export interface Product {
+  product_id: string;
+  product_category_name: string;
+  product_name_lenght: number;
+  product_description_lenght: number;
+  product_photos_qty: number;
+  product_weight_g: number;
+  product_length_cm: number;
+  product_height_cm: number;
+  product_width_cm: number;
+  category_english?: string; // From translation table
+}
+
+export interface Seller {
+  seller_id: string;
+  seller_zip_code_prefix: string;
+  seller_city: string;
+  seller_state: string;
+}
+
+// Existing interfaces for the dashboard (these will bridge between CSV and UI)
 export interface Category {
   id: number;
   name: string;
@@ -23,7 +98,7 @@ export interface MonthlyData {
   revenue: number;
 }
 
-export interface Product {
+export interface EnrichedProduct {
   id: number;
   name: string;
   category: string;
@@ -36,6 +111,7 @@ export interface Product {
   region: string;
 }
 
+// Keep existing mock data for now - this will be replaced when CSV data is loaded
 // Top categories by revenue
 export const categoryData: Category[] = [
   { id: 1, name: 'Electronics', revenue: 1250000, orders: 5200, averagePrice: 240, averageRating: 4.2, averageDeliveryTime: 3.5, profitRatio: 0.65 },
@@ -90,7 +166,7 @@ export const ratingDistribution = [
 ];
 
 // Product data
-export const productData: Product[] = [
+export const productData: EnrichedProduct[] = [
   // Best rated products
   { id: 1, name: 'Wireless Headphones', category: 'Electronics', price: 129, shippingCost: 8, weight: 0.3, rating: 4.9, deliveryTime: 2.1, estimatedDeliveryTime: 3, region: 'California' },
   { id: 2, name: 'Cotton T-Shirt', category: 'Fashion', price: 25, shippingCost: 5, weight: 0.2, rating: 4.8, deliveryTime: 1.5, estimatedDeliveryTime: 2, region: 'Texas' },
@@ -130,3 +206,17 @@ export const profitabilityData = categoryData.map(category => ({
   profitRatio: category.profitRatio,
   averageRating: category.averageRating
 }));
+
+// Function to load and parse CSV files (to be implemented)
+export const loadCsvData = async (fileName: string): Promise<any[]> => {
+  // This is a placeholder - implementation will depend on how you plan to load the CSV
+  // Could be via fetch from a server, or via file input
+  console.log(`Loading ${fileName}...`);
+  return [];
+};
+
+// Function to transform CSV data into dashboard format
+export const transformData = (csvData: any): any => {
+  // Placeholder for data transformation logic
+  return csvData;
+};

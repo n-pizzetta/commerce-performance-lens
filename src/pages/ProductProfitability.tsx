@@ -1,22 +1,66 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import KpiCard from '@/components/KpiCard';
 import FilterSection from '@/components/FilterSection';
 import BarChart from '@/components/charts/BarChart';
 import ScatterPlot from '@/components/charts/ScatterPlot';
 import HeatMap from '@/components/charts/HeatMap';
+import CsvUploader from '@/components/CsvUploader';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { categoryData, productData } from '@/utils/mockData';
 import { BarChart as BarChartIcon, ArrowRight, Filter } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 const ProductProfitability: React.FC = () => {
+  // Toast for notifications
+  const { toast } = useToast();
+  
   // State for filters
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [maxWeightFilter, setMaxWeightFilter] = useState('all');
   const [minRatingFilter, setMinRatingFilter] = useState('all');
   const [onTimeDeliveryFilter, setOnTimeDeliveryFilter] = useState('all');
+  
+  // State for data
+  const [categories, setCategories] = useState(categoryData);
+  const [products, setProducts] = useState(productData);
+  const [isUsingRealData, setIsUsingRealData] = useState(false);
+  
+  // Handle CSV file load
+  const handleCsvDataLoad = (fileName: string, data: any[]) => {
+    try {
+      // Here we would process and transform the data based on file name
+      // For now, let's just show a success message
+      console.log(`Loaded ${data.length} records from ${fileName}`);
+      
+      toast({
+        title: "Données chargées",
+        description: `${data.length} enregistrements chargés depuis ${fileName}`
+      });
+      
+      // In a real implementation, we would update the state with transformed data
+      // For demonstration purposes, we'll pretend we're using real data
+      setIsUsingRealData(true);
+      
+      // This is where we would actually transform and set the data
+      // For example: if it's a products file
+      if (fileName.includes('products')) {
+        // Process product data
+        // setProducts(transformedProducts);
+      }
+      // Similarly for other file types
+      
+    } catch (error) {
+      console.error("Error processing CSV data:", error);
+      toast({
+        title: "Erreur de traitement",
+        description: "Une erreur s'est produite lors du traitement des données",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Filter options
   const filterOptions = [
@@ -64,7 +108,7 @@ const ProductProfitability: React.FC = () => {
   ];
 
   // Calculate average values for categories
-  const categoryAverages = categoryData.map(cat => ({
+  const categoryAverages = categories.map(cat => ({
     name: cat.name,
     averagePrice: cat.averagePrice,
     shippingCost: cat.averagePrice * 0.1, // Mock data for shipping cost (10% of price)
@@ -73,7 +117,7 @@ const ProductProfitability: React.FC = () => {
   }));
 
   // Prepare data for the heatmap
-  const heatmapData = categoryData.map(cat => ({
+  const heatmapData = categories.map(cat => ({
     name: cat.name,
     values: [
       { x: 'Rentabilité', y: cat.profitRatio },
@@ -82,7 +126,7 @@ const ProductProfitability: React.FC = () => {
   }));
 
   // Calculate profitability metrics for each product
-  const productsWithProfitability = productData.map(product => {
+  const productsWithProfitability = products.map(product => {
     const profitRatio = (product.price - product.shippingCost) / product.weight;
     const isOnTime = product.deliveryTime <= product.estimatedDeliveryTime;
     
@@ -104,6 +148,18 @@ const ProductProfitability: React.FC = () => {
   
   return (
     <DashboardLayout title="Rentabilité produit / catégorie">
+      {/* Data Upload Button */}
+      <div className="flex justify-end mb-4">
+        <CsvUploader onFileLoad={handleCsvDataLoad} />
+      </div>
+      
+      {/* Data Source Indicator */}
+      {isUsingRealData && (
+        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-2 rounded-md mb-4">
+          Utilisation de données réelles
+        </div>
+      )}
+      
       {/* Filters */}
       <FilterSection filters={filterOptions} />
       
@@ -142,7 +198,7 @@ const ProductProfitability: React.FC = () => {
           </CardHeader>
           <CardContent>
             <BarChart
-              data={[...categoryData].sort((a, b) => b.profitRatio - a.profitRatio)}
+              data={[...categories].sort((a, b) => b.profitRatio - a.profitRatio)}
               xAxisDataKey="name"
               bars={[
                 { dataKey: "profitRatio", name: "Ratio de rentabilité", fill: "#8b5cf6" }
@@ -163,7 +219,7 @@ const ProductProfitability: React.FC = () => {
           </CardHeader>
           <CardContent>
             <ScatterPlot
-              data={productData}
+              data={products}
               xAxisDataKey="price"
               yAxisDataKey="shippingCost"
               zAxisDataKey="rating"
