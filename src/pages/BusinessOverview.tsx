@@ -6,7 +6,7 @@ import LineChart from '@/components/charts/LineChart';
 import PieChart from '@/components/charts/PieChart';
 import FilterSection from '@/components/FilterSection';
 import CsvUploader, { FileType } from '@/components/CsvUploader';
-import { categoryData, regionData, monthlyData, overallKpis } from '@/utils/mockData';
+import { categoryData, regionData, monthlyData, overallKpis, metaData } from '@/utils/mockData';
 import { ShoppingCart, DollarSign, Clock, Star } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
@@ -130,36 +130,90 @@ const BusinessOverview: React.FC = () => {
     );
   };
   
-  // Filter options for the filter section
+  // Filter data based on current filters
+  const filterData = (year: string, region: string, category: string) => {
+    // Filter monthly data by year
+    const filteredMonthly = monthlyData.filter(item => {
+      if (year === 'all') return true;
+      return item.month.startsWith(year);
+    });
+
+    // Filter regions
+    const filteredRegions = regionData.filter(item => {
+      if (region === 'all') return true;
+      return item.name.toLowerCase() === region.toLowerCase();
+    });
+
+    // Filter categories
+    const filteredCategories = categoryData.filter(item => {
+      if (category === 'all') return true;
+      return item.name.toLowerCase() === category.toLowerCase();
+    });
+
+    // Update state with filtered data
+    setMonthly(filteredMonthly);
+    setRegions(filteredRegions);
+    setCategories(filteredCategories);
+
+    // Update KPIs based on filtered data
+    if (category !== 'all' || region !== 'all' || year !== 'all') {
+      const filteredKpis = {
+        ...overallKpis,
+        totalOrders: filteredCategories.reduce((sum, cat) => sum + cat.orders, 0),
+        totalRevenue: filteredCategories.reduce((sum, cat) => sum + cat.revenue, 0),
+        averageProductPrice: filteredCategories.reduce((sum, cat) => sum + cat.averagePrice, 0) / filteredCategories.length,
+        averageCustomerRating: filteredCategories.reduce((sum, cat) => sum + cat.averageRating, 0) / filteredCategories.length,
+      };
+      setKpis(filteredKpis);
+    } else {
+      setKpis(overallKpis);
+    }
+  };
+
+  // Update filters and filter data
+  const handleYearFilter = (value: string) => {
+    setYearFilter(value);
+    filterData(value, regionFilter, categoryFilter);
+  };
+
+  const handleRegionFilter = (value: string) => {
+    setRegionFilter(value);
+    filterData(yearFilter, value, categoryFilter);
+  };
+
+  const handleCategoryFilter = (value: string) => {
+    setCategoryFilter(value);
+    filterData(yearFilter, regionFilter, value);
+  };
+
+  // Filter options for the filter section from metaData
   const filterOptions = [
     {
       name: 'Année',
       options: [
         { value: 'all', label: 'Toutes les années' },
-        { value: '2022', label: '2022' },
-        { value: '2021', label: '2021' },
-        { value: '2020', label: '2020' }
+        ...metaData.years.map(year => ({ value: year.toString(), label: year.toString() }))
       ],
       value: yearFilter,
-      onChange: setYearFilter
+      onChange: handleYearFilter
     },
     {
       name: 'Région',
       options: [
         { value: 'all', label: 'Toutes les régions' },
-        ...regions.map(region => ({ value: region.name.toLowerCase(), label: region.name }))
+        ...metaData.states.map(state => ({ value: state.toLowerCase(), label: state }))
       ],
       value: regionFilter,
-      onChange: setRegionFilter
+      onChange: handleRegionFilter
     },
     {
       name: 'Catégorie',
       options: [
         { value: 'all', label: 'Toutes les catégories' },
-        ...categories.map(category => ({ value: category.name.toLowerCase(), label: category.name }))
+        ...metaData.categories.map(category => ({ value: category.toLowerCase(), label: category }))
       ],
       value: categoryFilter,
-      onChange: setCategoryFilter
+      onChange: handleCategoryFilter
     }
   ];
 
@@ -168,31 +222,6 @@ const BusinessOverview: React.FC = () => {
 
   return (
     <DashboardLayout title="Vue globale du business">
-      {/* CSV Upload Button */}
-      <div className="flex justify-end mb-4">
-        <CsvUploader onFileLoad={handleCsvDataLoad} />
-      </div>
-      
-      {/* Data Upload Status */}
-      {isUsingRealData && (
-        <div className="mb-6">
-          <Alert variant="default" className="bg-green-50 border-green-200 text-green-800">
-            <AlertDescription>
-              <div className="font-medium">Fichiers chargés :</div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 text-sm">
-                {Object.entries(uploadCounts).map(([type, count]) => (
-                  <div key={type} className="flex items-center gap-1">
-                    <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
-                    <span className="capitalize">{type.replace('_', ' ')}: </span>
-                    <span className="font-medium">{count}</span> enregistrements
-                  </div>
-                ))}
-              </div>
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
-      
       {/* Filters */}
       <FilterSection filters={filterOptions} />
       

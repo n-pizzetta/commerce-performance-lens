@@ -7,7 +7,6 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
 import { Filter } from 'lucide-react';
 
 interface FilterOption {
@@ -26,20 +25,20 @@ interface FilterSectionProps {
 
 const FilterSection: React.FC<FilterSectionProps> = ({ filters }) => {
   return (
-    <div className="bg-white p-4 rounded-lg border shadow-sm mb-6">
+    <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm mb-6">
       <div className="flex items-center mb-4">
-        <Filter size={16} className="text-dashboard-purple mr-2" />
-        <h3 className="font-medium text-sm">Filtres</h3>
+        <Filter size={16} className="text-dashboard-purple dark:text-violet-400 mr-2" />
+        <h3 className="font-medium text-sm dark:text-gray-200">Filtres</h3>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filters.map((filter) => (
           <div key={filter.name}>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
               {filter.name}
             </label>
             <Select value={filter.value} onValueChange={filter.onChange}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder={`Select ${filter.name}`} />
+                <SelectValue placeholder={`Sélectionner ${filter.name.toLowerCase()}`} />
               </SelectTrigger>
               <SelectContent>
                 {filter.options.map((option) => (
@@ -51,10 +50,6 @@ const FilterSection: React.FC<FilterSectionProps> = ({ filters }) => {
             </Select>
           </div>
         ))}
-      </div>
-      <div className="flex justify-end mt-4">
-        <Button variant="outline" size="sm" className="mr-2">Reset</Button>
-        <Button size="sm" className="bg-dashboard-purple hover:bg-dashboard-blue transition-colors">Apply Filters</Button>
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import KpiCard from '@/components/KpiCard';
 import FilterSection from '@/components/FilterSection';
@@ -7,37 +6,56 @@ import BarChart from '@/components/charts/BarChart';
 import ScatterPlot from '@/components/charts/ScatterPlot';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ratingDistribution, productData, overallKpis, categoryData } from '@/utils/mockData';
+import { ratingDistribution, productData, overallKpis, metaData } from '@/utils/mockData';
 import { Star, Clock, ArrowDown } from 'lucide-react';
 
 const CustomerSatisfaction: React.FC = () => {
-  // State for filters
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [regionFilter, setRegionFilter] = useState('all');
-  const [periodFilter, setPeriodFilter] = useState('all');
-  const [ratingFilter, setRatingFilter] = useState('all');
+  // Format numbers for display
+  const formatNumber = (num: number) => new Intl.NumberFormat('fr-FR').format(num);
+  
+  // Calculate total reviews for the bar chart
+  const totalReviews = ratingDistribution.reduce((sum, item) => sum + item.count, 0);
 
-  // Filter options
+  // State for filters
+  const [filters, setFilters] = useState({
+    category: 'all',
+    region: 'all',
+    period: 'all',
+    rating: 'all'
+  });
+
+  // State for filtered data
+  const [filteredData, setFilteredData] = useState({
+    bestRated: productData.slice(0, 5),
+    worstRated: productData.slice(0, 5),
+    kpis: overallKpis
+  });
+
+  // Filter options for the FilterSection component
   const filterOptions = [
     {
       name: 'Catégorie',
       options: [
         { value: 'all', label: 'Toutes les catégories' },
-        ...categoryData.map(category => ({ value: category.name.toLowerCase(), label: category.name }))
+        ...metaData.categories.map(cat => ({ 
+          value: cat.toLowerCase(), 
+          label: cat 
+        }))
       ],
-      value: categoryFilter,
-      onChange: setCategoryFilter
+      value: filters.category,
+      onChange: (value: string) => handleFilterChange('category', value)
     },
     {
       name: 'Région',
       options: [
         { value: 'all', label: 'Toutes les régions' },
-        ...productData.map(product => product.region)
-          .filter((value, index, self) => self.indexOf(value) === index)
-          .map(region => ({ value: region.toLowerCase(), label: region }))
+        ...metaData.states.map(state => ({ 
+          value: state.toLowerCase(), 
+          label: state 
+        }))
       ],
-      value: regionFilter,
-      onChange: setRegionFilter
+      value: filters.region,
+      onChange: (value: string) => handleFilterChange('region', value)
     },
     {
       name: 'Période',
@@ -45,10 +63,10 @@ const CustomerSatisfaction: React.FC = () => {
         { value: 'all', label: 'Toute la période' },
         { value: 'this_month', label: 'Ce mois' },
         { value: 'last_month', label: 'Mois dernier' },
-        { value: 'last_3_months', label: '3 derniers mois' },
+        { value: 'last_3_months', label: '3 derniers mois' }
       ],
-      value: periodFilter,
-      onChange: setPeriodFilter
+      value: filters.period,
+      onChange: (value: string) => handleFilterChange('period', value)
     },
     {
       name: 'Note client',
@@ -56,28 +74,88 @@ const CustomerSatisfaction: React.FC = () => {
         { value: 'all', label: 'Toutes les notes' },
         { value: '5', label: '5 étoiles' },
         { value: '4_plus', label: '4+ étoiles' },
-        { value: 'below_3', label: 'Moins de 3 étoiles' },
+        { value: 'below_3', label: 'Moins de 3 étoiles' }
       ],
-      value: ratingFilter,
-      onChange: setRatingFilter
+      value: filters.rating,
+      onChange: (value: string) => handleFilterChange('rating', value)
     }
   ];
 
-  // Format numbers for display
-  const formatNumber = (num: number) => new Intl.NumberFormat('fr-FR').format(num);
-  
-  // Calculate total reviews
-  const totalReviews = ratingDistribution.reduce((sum, item) => sum + item.count, 0);
-  
-  // Get best and worst rated products
-  const bestRatedProducts = [...productData]
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 5);
+  // Handler for filter changes
+  const handleFilterChange = (filterName: string, value: string) => {
+    const newFilters = { ...filters, [filterName]: value };
+    setFilters(newFilters);
+    applyFilters(newFilters);
+  };
+
+  // Apply all filters and update data
+  const applyFilters = (currentFilters: typeof filters) => {
+    let filtered = [...productData];
+
+    // Apply category filter
+    if (currentFilters.category !== 'all') {
+      filtered = filtered.filter(item => 
+        item.category.toLowerCase() === currentFilters.category.toLowerCase()
+      );
+    }
+
+    // Apply region filter
+    if (currentFilters.region !== 'all') {
+      filtered = filtered.filter(item => 
+        item.region.toLowerCase() === currentFilters.region.toLowerCase()
+      );
+    }
+
+    // Apply rating filter
+    if (currentFilters.rating !== 'all') {
+      switch (currentFilters.rating) {
+        case '5':
+          filtered = filtered.filter(item => item.rating === 5);
+          break;
+        case '4_plus':
+          filtered = filtered.filter(item => item.rating >= 4);
+          break;
+        case 'below_3':
+          filtered = filtered.filter(item => item.rating < 3);
+          break;
+      }
+    }
+
+    // Calculate KPIs from filtered data
+    const avgRating = filtered.length > 0
+      ? filtered.reduce((sum, p) => sum + p.rating, 0) / filtered.length
+      : 0;
     
-  const worstRatedProducts = [...productData]
-    .sort((a, b) => a.rating - b.rating)
-    .slice(0, 5);
-  
+    const avgDeliveryTime = filtered.length > 0
+      ? filtered.reduce((sum, p) => sum + p.deliveryTime, 0) / filtered.length
+      : 0;
+
+    const lateDeliveries = filtered.filter(p => p.deliveryTime > p.estimatedDeliveryTime);
+    const percentLate = filtered.length > 0
+      ? (lateDeliveries.length / filtered.length) * 100
+      : 0;
+
+    const negativeReviews = filtered.filter(p => p.rating <= 2).length;
+
+    // Update filtered data state
+    setFilteredData({
+      bestRated: [...filtered].sort((a, b) => b.rating - a.rating).slice(0, 5),
+      worstRated: [...filtered].sort((a, b) => a.rating - b.rating).slice(0, 5),
+      kpis: {
+        ...overallKpis,
+        averageDeliveryTime: avgDeliveryTime,
+        percentLateDeliveries: percentLate,
+        averageCustomerRating: avgRating,
+        negativeReviews: negativeReviews
+      }
+    });
+  };
+
+  // Initial filter application
+  useEffect(() => {
+    applyFilters(filters);
+  }, []);
+
   return (
     <DashboardLayout title="Satisfaction client & Livraison">
       {/* Filters */}
@@ -87,25 +165,26 @@ const CustomerSatisfaction: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KpiCard
           title="Délai moyen livraison"
-          value={`${overallKpis.averageDeliveryTime} jours`}
+          value={`${filteredData.kpis.averageDeliveryTime.toFixed(1)} jours`}
           trend={{ direction: 'down', value: '-0.3j vs last month' }}
           icon={<Clock size={18} />}
         />
         <KpiCard
           title="Livraisons en retard"
-          value={`${overallKpis.percentLateDeliveries}%`}
+          value={`${filteredData.kpis.percentLateDeliveries.toFixed(1)}%`}
           trend={{ direction: 'down', value: '-2.1% vs last month' }}
         />
         <KpiCard
           title="Note moyenne"
-          value={`${overallKpis.averageCustomerRating}/5`}
+          value={`${filteredData.kpis.averageCustomerRating.toFixed(1)}/5`}
           trend={{ direction: 'up', value: '+0.2 vs last month' }}
           icon={<Star size={18} />}
         />
         <KpiCard
-          title="Retours/Avis négatifs"
-          value={formatNumber(overallKpis.returnsCount)}
+          title="Avis négatifs"
+          value={formatNumber(filteredData.kpis.negativeReviews)}
           trend={{ direction: 'down', value: '-5% vs last month' }}
+          description="Notes ≤ 2"
         />
       </div>
       
@@ -182,7 +261,7 @@ const CustomerSatisfaction: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bestRatedProducts.map((product) => (
+                {filteredData.bestRated.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{product.category}</TableCell>
@@ -218,7 +297,7 @@ const CustomerSatisfaction: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {worstRatedProducts.map((product) => (
+                {filteredData.worstRated.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{product.category}</TableCell>

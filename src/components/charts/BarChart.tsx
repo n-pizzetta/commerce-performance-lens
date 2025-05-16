@@ -22,15 +22,16 @@ const BarChart: React.FC<BarChartProps> = ({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <RechartsBarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey={xAxisDataKey} />
-        <YAxis />
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--grid-stroke, #f0f0f0)" />
+        <XAxis dataKey={xAxisDataKey} stroke="var(--axis-stroke, #666666)" />
+        <YAxis stroke="var(--axis-stroke, #666666)" />
         <Tooltip 
           contentStyle={{ 
-            backgroundColor: "#fff", 
-            border: "1px solid #f0f0f0",
+            backgroundColor: "var(--tooltip-bg, #fff)", 
+            border: "1px solid var(--tooltip-border, #f0f0f0)",
             borderRadius: "8px",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)"
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+            color: "var(--tooltip-text, #000)"
           }} 
         />
         <Legend />
