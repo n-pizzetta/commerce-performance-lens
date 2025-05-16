@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import KpiCard from '@/components/KpiCard';
@@ -9,7 +8,7 @@ import HeatMap from '@/components/charts/HeatMap';
 import CsvUploader from '@/components/CsvUploader';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { categoryData, productData } from '@/utils/mockData';
+import { categoryData, productData, overallKpis, metaData } from '@/utils/mockData';
 import { BarChart as BarChartIcon, ArrowRight, Filter } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -26,8 +25,121 @@ const ProductProfitability: React.FC = () => {
   // State for data
   const [categories, setCategories] = useState(categoryData);
   const [products, setProducts] = useState(productData);
+  const [filteredData, setFilteredData] = useState({
+    categories: categoryData,
+    products: productData,
+    kpis: overallKpis
+  });
   const [isUsingRealData, setIsUsingRealData] = useState(false);
-  
+
+  // Filter data based on current filters
+  const filterData = (category: string, maxWeight: string, minRating: string, onTimeDelivery: string) => {
+    let filteredProducts = [...productData];
+    
+    // Apply category filter
+    if (category !== 'all') {
+      filteredProducts = filteredProducts.filter(item => 
+        item.category.toLowerCase() === category.toLowerCase()
+      );
+    }
+
+    // Apply weight/price filter
+    if (maxWeight !== 'all') {
+      filteredProducts = filteredProducts.filter(item => {
+        switch(maxWeight) {
+          case 'light': return item.weight < 1;
+          case 'medium': return item.weight >= 1 && item.weight <= 3;
+          case 'heavy': return item.weight > 3;
+          default: return true;
+        }
+      });
+    }
+
+    // Apply rating filter
+    if (minRating !== 'all') {
+      const minRatingValue = parseInt(minRating);
+      filteredProducts = filteredProducts.filter(item => item.rating >= minRatingValue);
+    }
+
+    // Apply delivery filter
+    if (onTimeDelivery !== 'all') {
+      filteredProducts = filteredProducts.filter(item => {
+        const isOnTime = item.deliveryTime <= item.estimatedDeliveryTime;
+        return onTimeDelivery === 'on_time' ? isOnTime : !isOnTime;
+      });
+    }
+
+    // Calculate category metrics from filtered products
+    const filteredCategories = [...categories].map(category => {
+      const categoryProducts = filteredProducts.filter(p => p.category === category.name);
+      if (categoryProducts.length === 0) return category;
+
+      const totalRevenue = categoryProducts.reduce((sum, p) => sum + p.price, 0);
+      const totalShippingCost = categoryProducts.reduce((sum, p) => sum + p.shippingCost, 0);
+      const avgRating = categoryProducts.reduce((sum, p) => sum + p.rating, 0) / categoryProducts.length;
+      const avgDeliveryTime = categoryProducts.reduce((sum, p) => sum + p.deliveryTime, 0) / categoryProducts.length;
+      const profitRatio = categoryProducts.reduce((sum, p) => sum + (p.price - p.shippingCost) / p.weight, 0) / categoryProducts.length;
+
+      return {
+        ...category,
+        revenue: totalRevenue,
+        orders: categoryProducts.length,
+        averagePrice: totalRevenue / categoryProducts.length,
+        averageRating: avgRating,
+        averageDeliveryTime: avgDeliveryTime,
+        profitRatio
+      };
+    });
+
+    // Calculate filtered KPIs
+    const totalRevenue = filteredProducts.reduce((sum, p) => sum + p.price, 0);
+    const avgShippingCost = filteredProducts.reduce((sum, p) => sum + p.shippingCost, 0) / filteredProducts.length || 0;
+    const avgRating = filteredProducts.reduce((sum, p) => sum + p.rating, 0) / filteredProducts.length || 0;
+    const avgDeliveryTime = filteredProducts.reduce((sum, p) => sum + p.deliveryTime, 0) / filteredProducts.length || 0;
+    const avgProfitRatio = filteredProducts.reduce((sum, p) => sum + (p.price - p.shippingCost) / p.weight, 0) / filteredProducts.length || 0;
+
+    const filteredKpis = {
+      ...overallKpis,
+      totalOrders: filteredProducts.length,
+      totalRevenue,
+      averageProductPrice: totalRevenue / filteredProducts.length || 0,
+      averageShippingCost: avgShippingCost,
+      averageDeliveryTime: avgDeliveryTime,
+      averageCustomerRating: avgRating,
+      averageProfitRatio: avgProfitRatio,
+      percentLateDeliveries: (filteredProducts.filter(p => p.deliveryTime > p.estimatedDeliveryTime).length / filteredProducts.length) * 100 || 0,
+      negativeReviews: filteredProducts.filter(p => p.rating <= 2).length
+    };
+
+    // Update state with filtered data
+    setFilteredData({
+      categories: filteredCategories,
+      products: filteredProducts,
+      kpis: filteredKpis
+    });
+  };
+
+  // Filter handlers with automatic application
+  const handleCategoryFilter = (value: string) => {
+    setCategoryFilter(value);
+    filterData(value, maxWeightFilter, minRatingFilter, onTimeDeliveryFilter);
+  };
+
+  const handleMaxWeightFilter = (value: string) => {
+    setMaxWeightFilter(value);
+    filterData(categoryFilter, value, minRatingFilter, onTimeDeliveryFilter);
+  };
+
+  const handleMinRatingFilter = (value: string) => {
+    setMinRatingFilter(value);
+    filterData(categoryFilter, maxWeightFilter, value, onTimeDeliveryFilter);
+  };
+
+  const handleOnTimeDeliveryFilter = (value: string) => {
+    setOnTimeDeliveryFilter(value);
+    filterData(categoryFilter, maxWeightFilter, minRatingFilter, value);
+  };
+
   // Handle CSV file load
   const handleCsvDataLoad = (fileName: string, data: any[]) => {
     try {
@@ -62,16 +174,16 @@ const ProductProfitability: React.FC = () => {
     }
   };
 
-  // Filter options
+  // Filter options from metaData
   const filterOptions = [
     {
       name: 'Catégorie',
       options: [
         { value: 'all', label: 'Toutes les catégories' },
-        ...categoryData.map(category => ({ value: category.name.toLowerCase(), label: category.name }))
+        ...metaData.categories.map(category => ({ value: category.toLowerCase(), label: category }))
       ],
       value: categoryFilter,
-      onChange: setCategoryFilter
+      onChange: handleCategoryFilter
     },
     {
       name: 'Poids max/Prix min',
@@ -82,7 +194,7 @@ const ProductProfitability: React.FC = () => {
         { value: 'heavy', label: 'Lourd (> 3kg)' }
       ],
       value: maxWeightFilter,
-      onChange: setMaxWeightFilter
+      onChange: handleMaxWeightFilter
     },
     {
       name: 'Score minimum',
@@ -93,7 +205,7 @@ const ProductProfitability: React.FC = () => {
         { value: '3', label: '3+ étoiles' }
       ],
       value: minRatingFilter,
-      onChange: setMinRatingFilter
+      onChange: handleMinRatingFilter
     },
     {
       name: 'Livraison à temps',
@@ -103,12 +215,12 @@ const ProductProfitability: React.FC = () => {
         { value: 'delayed', label: 'En retard' }
       ],
       value: onTimeDeliveryFilter,
-      onChange: setOnTimeDeliveryFilter
+      onChange: handleOnTimeDeliveryFilter
     }
   ];
 
   // Calculate average values for categories
-  const categoryAverages = categories.map(cat => ({
+  const categoryAverages = filteredData.categories.map(cat => ({
     name: cat.name,
     averagePrice: cat.averagePrice,
     shippingCost: cat.averagePrice * 0.1, // Mock data for shipping cost (10% of price)
@@ -117,7 +229,7 @@ const ProductProfitability: React.FC = () => {
   }));
 
   // Prepare data for the heatmap
-  const heatmapData = categories.map(cat => ({
+  const heatmapData = filteredData.categories.map(cat => ({
     name: cat.name,
     values: [
       { x: 'Rentabilité', y: cat.profitRatio },
@@ -126,7 +238,7 @@ const ProductProfitability: React.FC = () => {
   }));
 
   // Calculate profitability metrics for each product
-  const productsWithProfitability = products.map(product => {
+  const productsWithProfitability = filteredData.products.map(product => {
     const profitRatio = (product.price - product.shippingCost) / product.weight;
     const isOnTime = product.deliveryTime <= product.estimatedDeliveryTime;
     
@@ -148,18 +260,6 @@ const ProductProfitability: React.FC = () => {
   
   return (
     <DashboardLayout title="Rentabilité produit / catégorie">
-      {/* Data Upload Button */}
-      <div className="flex justify-end mb-4">
-        <CsvUploader onFileLoad={handleCsvDataLoad} />
-      </div>
-      
-      {/* Data Source Indicator */}
-      {isUsingRealData && (
-        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-2 rounded-md mb-4">
-          Utilisation de données réelles
-        </div>
-      )}
-      
       {/* Filters */}
       <FilterSection filters={filterOptions} />
       
@@ -167,20 +267,20 @@ const ProductProfitability: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KpiCard
           title="Prix moyen par catégorie"
-          value={`${formatNumber(Math.round(categoryAverages.reduce((sum, cat) => sum + cat.averagePrice, 0) / categoryAverages.length))} €`}
+          value={`${formatNumber(filteredData.kpis.averageProductPrice)} €`}
         />
         <KpiCard
           title="Frais de port moyen"
-          value={`${formatNumber(Math.round(categoryAverages.reduce((sum, cat) => sum + cat.shippingCost, 0) / categoryAverages.length))} €`}
+          value={`${formatNumber(filteredData.kpis.averageShippingCost)} €`}
         />
         <KpiCard
           title="Ratio rentabilité moyen"
-          value={`${(categoryAverages.reduce((sum, cat) => sum + cat.profitRatio, 0) / categoryAverages.length).toFixed(2)}`}
+          value={filteredData.kpis.averageProfitRatio.toFixed(2)}
           description="(Prix - Frais) / Poids"
         />
         <KpiCard
           title="Score client moyen"
-          value={`${(categoryAverages.reduce((sum, cat) => sum + cat.rating, 0) / categoryAverages.length).toFixed(1)}/5`}
+          value={`${filteredData.kpis.averageCustomerRating.toFixed(1)}/5`}
         />
       </div>
       
@@ -198,7 +298,7 @@ const ProductProfitability: React.FC = () => {
           </CardHeader>
           <CardContent>
             <BarChart
-              data={[...categories].sort((a, b) => b.profitRatio - a.profitRatio)}
+              data={[...filteredData.categories].sort((a, b) => b.profitRatio - a.profitRatio)}
               xAxisDataKey="name"
               bars={[
                 { dataKey: "profitRatio", name: "Ratio de rentabilité", fill: "#8b5cf6" }
@@ -219,7 +319,7 @@ const ProductProfitability: React.FC = () => {
           </CardHeader>
           <CardContent>
             <ScatterPlot
-              data={products}
+              data={filteredData.products}
               xAxisDataKey="price"
               yAxisDataKey="shippingCost"
               zAxisDataKey="rating"

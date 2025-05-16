@@ -2,6 +2,7 @@
 import React from 'react';
 import DashboardNav from './DashboardNav';
 import { ChartBar, Star, BarChart } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -28,9 +29,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b px-6 py-4">
-        <h1 className="text-2xl font-bold gradient-text">Analytics Dashboard</h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <header className="bg-white dark:bg-gray-950 border-b px-6 py-4 dark:border-gray-800">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold gradient-text dark:text-white">Analytics Dashboard</h1>
+          <ThemeToggle />
+        </div>
       </header>
       
       <DashboardNav items={navItems} />
@@ -46,8 +50,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         {children}
       </main>
       
-      <footer className="bg-white border-t py-4 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Marketplace Analytics Dashboard
+      <footer className="bg-white dark:bg-gray-950 border-t dark:border-gray-800 py-4 text-center text-sm text-muted-foreground">
+        © {new Date().getFullYear()} Gran🍪Lab
       </footer>
     </div>
   );
