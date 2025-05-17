@@ -1,73 +1,34 @@
-# Welcome to your Lovable project
+# 📊 La Bagunça Analytics Dashboard
 
-## Project info
+![La Bagunça Logo](/public/shirt-labagunca.svg)
 
-**URL**: https://lovable.dev/projects/f67aa327-e8aa-4f34-9008-20b46da7447a
+## 🚀 Présentation
 
-## How can I edit this code?
+Dashboard analytique moderne pour La Bagunça, permettant de visualiser et d'analyser les données commerciales de manière interactive et élégante. Développé par l'équipe Gran🍪Lab lors du hackathon AVISIA.
 
-There are several ways of editing your application.
+**[Accéder au dashboard en ligne](https://precious-blini-54736a.netlify.app/)**
 
-**Use Lovable**
+## ✨ Fonctionnalités
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f67aa327-e8aa-4f34-9008-20b46da7447a) and start prompting.
+- **Vue globale du business** : Chiffre d'affaires, commandes, performances par catégorie et région
+- **Satisfaction client** : Analyse des notes clients et des délais de livraison
+- **Rentabilité produit** : Analyse détaillée des performances produits et des ratios de profit
+- **Interface responsive** : Expérience utilisateur optimisée sur tous les appareils
+- **Mode sombre/clair** : Interface adaptable aux préférences visuelles
+- **Filtres interactifs** : Analyse personnalisée par année, région, catégorie et produit
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠️ Technologies
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
+- React + TypeScript
 - Vite
-- TypeScript
-- React
-- shadcn-ui
+- Recharts pour les visualisations
 - Tailwind CSS
+- Shadcn/UI pour les composants
 
-## How can I deploy this project?
+## 👥 Équipe Gran🍪Lab
 
-Simply open [Lovable](https://lovable.dev/projects/f67aa327-e8aa-4f34-9008-20b46da7447a) and click on Share -> Publish.
+Dashboard conçu et développé avec passion pour La Bagunça, en respectant l'identité visuelle de la marque avec ses couleurs emblématiques : bleu marine, vert et jaune.
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+© 2023 La Bagunça Analytics | Développé par Gran🍪Lab
