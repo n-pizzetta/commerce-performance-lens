@@ -1,6 +1,6 @@
 # 📊 La Bagunça Analytics Dashboard
 
-![La Bagunça Logo](/public/shirt-labagunca.svg)
+![La Bagunça Logo](/public/preview_la_bagunca.png)
 
 ## 🚀 Présentation
 
