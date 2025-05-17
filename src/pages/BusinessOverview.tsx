@@ -349,10 +349,19 @@ const BusinessOverview: React.FC = () => {
           />
         </div>
 
-        <PieChart
-          title="Répartition des ventes par région"
-          data={regionFiltered.map((r) => ({ name: r.name, value: r.revenue }))}
-        />
+        <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm">
+          <PieChart
+            title="Répartition des ventes par région"
+            data={regionFiltered
+              .sort((a, b) => b.revenue - a.revenue)
+              .map((r) => ({ 
+                name: r.name, 
+                value: r.revenue 
+              }))}
+            threshold={5}
+            height={350}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

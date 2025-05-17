@@ -11,6 +11,7 @@ interface BarChartProps {
   }[];
   height?: number;
   formatTooltipValue?: (value: number, name: string) => string;
+  showLegend?: boolean;
 }
 
 const BarChart: React.FC<BarChartProps> = ({ 
@@ -18,7 +19,8 @@ const BarChart: React.FC<BarChartProps> = ({
   xAxisDataKey, 
   bars,
   height = 300,
-  formatTooltipValue
+  formatTooltipValue,
+  showLegend = false
 }) => {
   // Fonction par défaut pour formatter les nombres avec des espaces comme séparateurs de milliers
   const defaultFormatter = (value: number, name: string) => {
@@ -80,12 +82,24 @@ const BarChart: React.FC<BarChartProps> = ({
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <RechartsBarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+      <RechartsBarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--grid-stroke, #f0f0f0)" />
-        <XAxis dataKey={xAxisDataKey} stroke="var(--axis-stroke, #666666)" />
+        <XAxis 
+          dataKey={xAxisDataKey} 
+          stroke="var(--axis-stroke, #666666)"
+          angle={-45}
+          textAnchor="end"
+          interval={0}
+          tick={{
+            fontSize: 12,
+            fontWeight: 500,
+            dy: 10
+          }}
+          height={60}
+        />
         <YAxis stroke="var(--axis-stroke, #666666)" tickFormatter={(value) => new Intl.NumberFormat('fr-FR', { notation: 'compact', maximumFractionDigits: 0 }).format(value)} />
         <Tooltip content={<CustomTooltip />} />
-        <Legend />
+        {showLegend && <Legend />}
         {bars.map((bar, index) => (
           <Bar 
             key={index} 

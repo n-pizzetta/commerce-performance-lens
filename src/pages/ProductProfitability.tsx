@@ -494,9 +494,21 @@ const ProductProfitability: React.FC = () => {
                 data={[...filteredCategories]
                   .filter(c => !isNaN(c.profitRatio))
                   .sort((a, b) => b.profitRatio - a.profitRatio)
-                  .slice(0, 10)}
+                  .slice(0, 10)
+                  .map(category => ({
+                    ...category,
+                    name: formatCategoryName(category.name),
+                    profitRatio: parseFloat((category.profitRatio * 100).toFixed(1))
+                  }))}
                 xAxisDataKey="name"
                 bars={[{ dataKey: "profitRatio", name: "Ratio de profit", fill: "#8b5cf6" }]}
+                formatTooltipValue={(value, name) => {
+                  if (name === "Ratio de profit") {
+                    return `${value.toFixed(1)}%`;
+                  }
+                  return value.toString();
+                }}
+                showLegend={false}
               />
             </div>
             
