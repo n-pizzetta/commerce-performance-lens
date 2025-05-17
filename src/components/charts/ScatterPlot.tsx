@@ -7,7 +7,7 @@ interface ScatterPlotProps {
   yAxisDataKey: string;
   zAxisDataKey?: string;
   name: string;
-  fill: string;
+  fill?: string;
   height?: number;
 }
 
@@ -17,7 +17,7 @@ const ScatterPlot: React.FC<ScatterPlotProps> = ({
   yAxisDataKey,
   zAxisDataKey,
   name,
-  fill,
+  fill = '#009739', // Couleur verte de La Bagunça par défaut
   height = 350 
 }) => {
   // Formatter personnalisé pour les tooltips
@@ -54,7 +54,7 @@ const ScatterPlot: React.FC<ScatterPlotProps> = ({
           {propertiesToShow.map((key) => (
             data[key] !== undefined && (
               <p key={key} style={{ margin: '2px 0', color: '#333' }}>
-                <span style={{ fontWeight: 'bold', color: '#111' }}>{key} : </span>
+                <span style={{ fontWeight: 'bold', color: '#000' }}>{key} : </span>
                 {formatValue(data[key])}
               </p>
             )

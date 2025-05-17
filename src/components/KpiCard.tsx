@@ -1,7 +1,6 @@
-
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from '@/lib/utils';
+import { ArrowDown, ArrowUp } from 'lucide-react';
 
 interface KpiCardProps {
   title: string;
@@ -9,10 +8,9 @@ interface KpiCardProps {
   description?: string;
   icon?: React.ReactNode;
   trend?: {
-    direction: 'up' | 'down' | 'neutral';
+    direction: 'up' | 'down';
     value: string;
   };
-  className?: string;
 }
 
 const KpiCard: React.FC<KpiCardProps> = ({
@@ -21,38 +19,33 @@ const KpiCard: React.FC<KpiCardProps> = ({
   description,
   icon,
   trend,
-  className
 }) => {
   return (
-    <Card className={cn("border shadow-sm h-full", className)}>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            {title}
-          </CardTitle>
-          {icon && <div className="text-muted-foreground">{icon}</div>}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-1">
-          <div className="text-2xl font-bold">{value}</div>
-          {description && (
-            <CardDescription className="text-xs">{description}</CardDescription>
-          )}
-          {trend && (
-            <div className={cn(
+    <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm">
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+        {icon && <div className="text-bagunca-navy dark:text-bagunca-yellow">{icon}</div>}
+      </div>
+      <div className="flex items-baseline gap-2">
+        <p className="text-2xl font-bold text-bagunca-navy dark:text-white">{value}</p>
+        {trend && (
+          <span
+            className={cn(
               "text-xs font-medium flex items-center",
-              trend.direction === 'up' ? "text-dashboard-green" : 
-              trend.direction === 'down' ? "text-dashboard-red" : 
-              "text-dashboard-gray"
-            )}>
-              {trend.direction === 'up' ? '↑ ' : trend.direction === 'down' ? '↓ ' : ''}
-              {trend.value}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+              trend.direction === 'up' ? "text-bagunca-green" : "text-red-500"
+            )}
+          >
+            {trend.direction === 'up' ? (
+              <ArrowUp size={12} className="mr-1" />
+            ) : (
+              <ArrowDown size={12} className="mr-1" />
+            )}
+            {trend.value}
+          </span>
+        )}
+      </div>
+      {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
+    </div>
   );
 };
 

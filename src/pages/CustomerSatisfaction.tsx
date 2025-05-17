@@ -493,7 +493,7 @@ const CustomerSatisfaction: React.FC = () => {
                     data={ratingDistributionData}
                     xAxisDataKey="rating"
                     bars={[
-                      { dataKey: "count", name: "Nombre d'avis", fill: "#8b5cf6" }
+                      { dataKey: "count", name: "Nombre d'avis" }
                     ]}
                   />
                 )}
@@ -530,7 +530,6 @@ const CustomerSatisfaction: React.FC = () => {
                     yAxisDataKey="rating"
                     zAxisDataKey="price"
                     name="Produits"
-                    fill="#8b5cf6"
                   />
                 )}
               </CardContent>

@@ -7,7 +7,7 @@ interface BarChartProps {
   bars: {
     dataKey: string;
     name: string;
-    fill: string;
+    fill?: string;
   }[];
   height?: number;
   formatTooltipValue?: (value: number, name: string) => string;
@@ -22,6 +22,9 @@ const BarChart: React.FC<BarChartProps> = ({
   formatTooltipValue,
   showLegend = false
 }) => {
+  // Couleurs de La Bagunça
+  const baguncaColors = ['#012169', '#009739', '#FEDD00'];
+  
   // Fonction par défaut pour formatter les nombres avec des espaces comme séparateurs de milliers
   const defaultFormatter = (value: number, name: string) => {
     // Formatter toutes les valeurs numériques avec le format français
@@ -105,7 +108,7 @@ const BarChart: React.FC<BarChartProps> = ({
             key={index} 
             dataKey={bar.dataKey} 
             name={bar.name} 
-            fill={bar.fill} 
+            fill={bar.fill || baguncaColors[index % baguncaColors.length]} 
             radius={[4, 4, 0, 0]}
           />
         ))}

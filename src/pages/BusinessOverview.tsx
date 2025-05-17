@@ -336,7 +336,7 @@ const BusinessOverview: React.FC = () => {
                 name: formatCategoryName(category.name)
               }))}
             xAxisDataKey="name"
-            bars={[{ dataKey: "revenue", name: "CA", fill: "#8b5cf6" }]}
+            bars={[{ dataKey: "revenue", name: "CA" }]}
             formatTooltipValue={(value, name) => {
               if (name === "CA") {
                 return new Intl.NumberFormat('fr-FR', { 
@@ -371,7 +371,7 @@ const BusinessOverview: React.FC = () => {
             data={monthFiltered}
             xAxisDataKey="month"
             lines={[
-              { dataKey: "revenue", name: "CA", stroke: "#8b5cf6" },
+              { dataKey: "revenue", name: "CA" },
             ]}
             formatTooltipValue={(value, name) => {
               if (name === "CA") {
@@ -391,7 +391,7 @@ const BusinessOverview: React.FC = () => {
             data={monthFiltered}
             xAxisDataKey="month"
             lines={[
-              { dataKey: "orders", name: "Commandes", stroke: "#22c55e" },
+              { dataKey: "orders", name: "Commandes" },
             ]}
           />
         </div>

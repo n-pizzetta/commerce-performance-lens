@@ -68,6 +68,9 @@ const PieChart: React.FC<PieChartProps> = ({
 
   // Couleurs personnalisées pour une meilleure distinction visuelle
   const customColors = [
+    '#012169', // Bleu marine (La Bagunça)
+    '#009739', // Vert (La Bagunça)
+    '#FEDD00', // Jaune (La Bagunça)
     '#4F46E5', // Indigo
     '#10B981', // Emerald
     '#F59E0B', // Amber

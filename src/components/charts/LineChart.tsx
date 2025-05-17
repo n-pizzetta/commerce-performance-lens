@@ -7,7 +7,7 @@ interface LineChartProps {
   lines: {
     dataKey: string;
     name: string;
-    stroke: string;
+    stroke?: string;
   }[];
   height?: number;
   formatTooltipValue?: (value: number, name: string) => string;
@@ -18,8 +18,11 @@ const LineChart: React.FC<LineChartProps> = ({
   xAxisDataKey, 
   lines,
   height = 300,
-  formatTooltipValue 
+  formatTooltipValue
 }) => {
+  // Couleurs de La Bagunça
+  const baguncaColors = ['#012169', '#009739', '#FEDD00'];
+  
   // Fonction par défaut pour formatter les nombres avec des espaces comme séparateurs de milliers
   const defaultFormatter = (value: number, name: string) => {
     if (name === "CA") {
@@ -43,7 +46,7 @@ const LineChart: React.FC<LineChartProps> = ({
     return (
       <div className="custom-tooltip" style={{
         backgroundColor: '#fff',
-        border: '1px solidrgba(240, 240, 240, 0.05)',
+        border: '1px solid #f0f0f0',
         borderRadius: '4px',
         boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)',
         padding: '2px 6px',
@@ -93,7 +96,7 @@ const LineChart: React.FC<LineChartProps> = ({
             type="monotone" 
             dataKey={line.dataKey} 
             name={line.name}
-            stroke={line.stroke} 
+            stroke={line.stroke || baguncaColors[index % baguncaColors.length]} 
             activeDot={{ r: 6 }}
             strokeWidth={2}
           />

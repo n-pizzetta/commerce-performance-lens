@@ -501,7 +501,7 @@ const ProductProfitability: React.FC = () => {
                     profitRatio: parseFloat((category.profitRatio * 100).toFixed(1))
                   }))}
                 xAxisDataKey="name"
-                bars={[{ dataKey: "profitRatio", name: "Ratio de profit", fill: "#8b5cf6" }]}
+                bars={[{ dataKey: "profitRatio", name: "Ratio de profit" }]}
                 formatTooltipValue={(value, name) => {
                   if (name === "Ratio de profit") {
                     return `${value.toFixed(1)}%`;
@@ -525,7 +525,6 @@ const ProductProfitability: React.FC = () => {
                 yAxisDataKey="rating"
                 zAxisDataKey="shippingCost"
                 name="Produits"
-                fill="#22c55e"
               />
             </div>
           </div>
