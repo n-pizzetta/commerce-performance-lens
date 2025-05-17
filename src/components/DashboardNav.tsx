@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -28,8 +27,8 @@ const DashboardNav: React.FC<DashboardNavProps> = ({ items }) => {
             className={cn(
               "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap",
               isActive 
-                ? "bg-dashboard-lightPurple text-dashboard-purple dark:bg-violet-900 dark:text-violet-200" 
-                : "text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                ? "bg-bagunca-yellow text-bagunca-navy dark:bg-bagunca-green dark:text-white" 
+                : "text-muted-foreground hover:text-bagunca-navy hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-gray-400 dark:hover:text-bagunca-yellow"
             )}
           >
             {item.icon && <span className="mr-2">{item.icon}</span>}

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import DashboardNav from './DashboardNav';
 import { ChartBar, Star, BarChart } from 'lucide-react';
@@ -30,9 +29,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-950 border-b px-6 py-4 dark:border-gray-800">
+      <header className="bg-bagunca-navy text-white px-6 py-4 border-b border-bagunca-green">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold gradient-text dark:text-white">Analytics Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <img 
+              src="/shirt-labagunca.svg" 
+              alt="La Bagunça Logo" 
+              className="w-8 h-8" 
+            />
+            <h1 className="text-2xl font-bold text-bagunca-yellow">La Bagunça Analytics</h1>
+          </div>
           <ThemeToggle />
         </div>
       </header>
@@ -41,7 +47,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
       
       <main className="container py-6">
         <div className="mb-6">
-          <h2 className="text-xl font-semibold">{title}</h2>
+          <h2 className="text-xl font-semibold text-bagunca-navy dark:text-bagunca-yellow">{title}</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Analyse des données pour optimiser vos décisions commerciales
           </p>
@@ -50,8 +56,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         {children}
       </main>
       
-      <footer className="bg-white dark:bg-gray-950 border-t dark:border-gray-800 py-4 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Gran🍪Lab
+      <footer className="bg-bagunca-navy text-white border-t border-bagunca-green py-4 text-center text-sm">
+        <div className="flex justify-center items-center gap-2">
+          <span>© {new Date().getFullYear()} La Bagunça</span>
+          <span className="text-xs">|</span>
+          <span className="text-xs">Dashboard développé par <span className="font-bold">Gran🍪Lab</span></span>
+        </div>
       </footer>
     </div>
   );

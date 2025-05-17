@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -73,6 +72,12 @@ export default {
 					yellow: '#f59e0b',
 					gray: '#6b7280',
 					lightGray: '#f3f4f6',
+				},
+				// Couleurs de la marque La Bagunça
+				bagunca: {
+					navy: '#012169',    // Bleu marine
+					green: '#009739',   // Vert
+					yellow: '#FEDD00',  // Jaune
 				}
 			},
 			borderRadius: {
