@@ -110,6 +110,14 @@ export interface EnrichedProduct {
   estimatedDeliveryTime: number;
   region: string;
 }
+export interface FactsRow {
+  ym:       string;   // "2024-03"
+  year:     number;   // 2024
+  state:    string;   // "SP"
+  category: string;   // "Electronics"
+  orders:   number;
+  revenue:  number;
+}
 
 // Keep existing mock data for now - this will be replaced when CSV data is loaded
 // Top categories by revenue from examples.json

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import KpiCard from '@/components/KpiCard';
 import FilterSection from '@/components/FilterSection';
@@ -6,312 +6,651 @@ import BarChart from '@/components/charts/BarChart';
 import ScatterPlot from '@/components/charts/ScatterPlot';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ratingDistribution, productData, overallKpis, metaData } from '@/utils/mockData';
-import { Star, Clock, ArrowDown } from 'lucide-react';
+import { Star, Clock, AlertCircle } from 'lucide-react';
+import { useDashboardData } from '@/contexts/DataContext';
+import Spinner from '@/components/ui/Spinner';
+import ErrorBanner from '@/components/ui/ErrorBanner';
+
+// Nombre maximum de produits à afficher dans le filtre pour éviter les performances excessives
+const MAX_PRODUCT_OPTIONS = 50;
+// Nombre maximum de régions à afficher dans le filtre
+const MAX_REGION_OPTIONS = 50;
 
 const CustomerSatisfaction: React.FC = () => {
-  // Format numbers for display
-  const formatNumber = (num: number) => new Intl.NumberFormat('fr-FR').format(num);
+  // État local pour le filtre de produit
+  const [productFilter, setProductFilter] = useState<string>('all');
   
+  // Format numbers for display - converti en fonction memoizée
+  const formatNumber = useCallback((num: number) => {
+    if (isNaN(num) || num === undefined) return "0";
+    return new Intl.NumberFormat('fr-FR').format(num);
+  }, []);
+  
+  // Fonction pour formater le nom d'une catégorie pour affichage - memoizée pour éviter les recalculs
+  const formatCategoryName = useCallback((name: string | undefined): string => {
+    if (!name) return "Catégorie non spécifiée";
+    
+    // Convertir les underscores en espaces et mettre en majuscule les premières lettres
+    return name
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }, []);
+  
+  // Get data from context
+  const {
+    enrichedProducts,
+    ratingDistribution,
+    kpis,
+    meta,
+    isLoading,
+    error,
+    filters,
+    setFilters
+  } = useDashboardData();
+
+  // Reset le filtre produit quand on change de catégorie
+  useEffect(() => {
+    setProductFilter('all');
+  }, [filters.category]);
+
   // Calculate total reviews for the bar chart
-  const totalReviews = ratingDistribution.reduce((sum, item) => sum + item.count, 0);
+  const totalReviews = useMemo(() => 
+    ratingDistribution.reduce((sum, item) => sum + (item.count || 0), 0) || 1, // Éviter division par zéro
+    [ratingDistribution]
+  );
 
-  // State for filters
-  const [filters, setFilters] = useState({
-    category: 'all',
-    region: 'all',
-    period: 'all',
-    rating: 'all'
-  });
+  // Produits filtrés par région et catégorie (base pour les autres filtres)
+  const baseFilteredProducts = useMemo(() => {
+    if (!enrichedProducts || !Array.isArray(enrichedProducts)) return [];
+    
+    return [...enrichedProducts];
+  }, [enrichedProducts]);
 
-  // State for filtered data
-  const [filteredData, setFilteredData] = useState({
-    bestRated: productData.slice(0, 5),
-    worstRated: productData.slice(0, 5),
-    kpis: overallKpis
-  });
+  // Obtenir les catégories disponibles en fonction de la région sélectionnée
+  const availableCategories = useMemo(() => {
+    if (!baseFilteredProducts || baseFilteredProducts.length === 0) return [];
+    
+    const uniqueCategories = new Set<string>();
+    
+    // Si un filtre de région est appliqué, ne prendre que les catégories pour cette région
+    if (filters.state !== 'all') {
+      for (let i = 0; i < baseFilteredProducts.length; i++) {
+        const product = baseFilteredProducts[i];
+        if (product && product.region && product.category && 
+            product.region.toLowerCase() === filters.state.toLowerCase()) {
+          uniqueCategories.add(product.category.toLowerCase());
+        }
+      }
+    } else {
+      // Sinon prendre toutes les catégories disponibles
+      for (let i = 0; i < baseFilteredProducts.length; i++) {
+        const product = baseFilteredProducts[i];
+        if (product && product.category) {
+          uniqueCategories.add(product.category.toLowerCase());
+        }
+      }
+    }
+    
+    return Array.from(uniqueCategories);
+  }, [baseFilteredProducts, filters.state]);
+
+  // Obtenir les régions disponibles en fonction de la catégorie sélectionnée
+  const availableRegions = useMemo(() => {
+    if (!baseFilteredProducts || baseFilteredProducts.length === 0) return [];
+    
+    const uniqueRegions = new Set<string>();
+    const regionsToProcess = Math.min(baseFilteredProducts.length, 500);
+    
+    // Si un filtre de catégorie est appliqué, ne prendre que les régions pour cette catégorie
+    if (filters.category !== 'all') {
+      for (let i = 0; i < regionsToProcess; i++) {
+        const product = baseFilteredProducts[i];
+        if (product && product.region && product.category && 
+            product.category.toLowerCase() === filters.category.toLowerCase()) {
+          uniqueRegions.add(product.region.toLowerCase());
+        }
+        
+        if (uniqueRegions.size >= MAX_REGION_OPTIONS) break;
+      }
+    } else {
+      // Sinon prendre toutes les régions disponibles
+      for (let i = 0; i < regionsToProcess; i++) {
+        const product = baseFilteredProducts[i];
+        if (product && product.region) {
+          uniqueRegions.add(product.region.toLowerCase());
+        }
+        
+        if (uniqueRegions.size >= MAX_REGION_OPTIONS) break;
+      }
+    }
+    
+    return Array.from(uniqueRegions).sort();
+  }, [baseFilteredProducts, filters.category]);
+
+  // Produits pré-filtrés par catégorie et région (pour le filtre produit)
+  const productsFilteredByCategory = useMemo(() => {
+    if (!baseFilteredProducts || baseFilteredProducts.length === 0) return [];
+    
+    let filtered = [...baseFilteredProducts];
+    
+    // Apply category filter
+    if (filters.category !== 'all') {
+      filtered = filtered.filter(item => 
+        item && (item.category || '').toLowerCase() === filters.category.toLowerCase()
+      );
+    }
+
+    // Apply region/state filter
+    if (filters.state !== 'all') {
+      filtered = filtered.filter(item => 
+        item && (item.region || '').toLowerCase() === filters.state.toLowerCase()
+      );
+    }
+    
+    return filtered;
+  }, [baseFilteredProducts, filters.category, filters.state]);
+
+  // Liste des produits uniques pour le filtre - limitée à MAX_PRODUCT_OPTIONS et filtrée par catégorie
+  const productOptions = useMemo(() => {
+    if (!productsFilteredByCategory || productsFilteredByCategory.length === 0) return [];
+    
+    // Construire un Set pour éviter les doublons
+    const uniqueProducts = new Set<string>();
+    
+    // N'examiner que les premiers produits pour éviter les performances excessives
+    const productsToProcess = productsFilteredByCategory.slice(0, 300);
+    
+    productsToProcess.forEach(product => {
+      if (product && product.name && uniqueProducts.size < MAX_PRODUCT_OPTIONS) {
+        uniqueProducts.add(product.name);
+      }
+    });
+    
+    // Convertir en tableau et trier par ordre alphabétique
+    return Array.from(uniqueProducts).sort();
+  }, [productsFilteredByCategory]);
+
+  // Filtered products based on filters - with optimization
+  const filteredProducts = useMemo(() => {
+    // Protection contre un tableau undefined ou null
+    if (!productsFilteredByCategory || productsFilteredByCategory.length === 0) return [];
+    
+    // Limiter le nombre de produits traités pour améliorer les performances
+    const productsToProcess = productsFilteredByCategory.length > 500 
+      ? productsFilteredByCategory.slice(0, 500) 
+      : productsFilteredByCategory;
+    
+    let filtered = [...productsToProcess];
+    
+    // Apply product filter (local)
+    if (productFilter !== 'all') {
+      filtered = filtered.filter(item => 
+        item && item.name === productFilter
+      );
+    }
+
+    return filtered;
+  }, [productsFilteredByCategory, productFilter]);
+
+  // Flag pour savoir s'il y a des produits après filtrage
+  const hasProducts = useMemo(() => {
+    return filteredProducts.length > 0;
+  }, [filteredProducts]);
+
+  // Flag pour savoir s'il y a des produits avec des notes après filtrage
+  const hasRatedProducts = useMemo(() => {
+    return filteredProducts.some(p => typeof p.rating === 'number' && !isNaN(p.rating));
+  }, [filteredProducts]);
+
+  // Calculate KPIs from filtered data - optimized with early return if no changes
+  const filteredKpis = useMemo(() => {
+    if (!filteredProducts || filteredProducts.length === 0) return kpis;
+
+    // Calculer en protégeant contre les NaN et les divisions par zéro
+    const productCount = filteredProducts.length || 1; // Éviter division par zéro
+    
+    const validRatings = filteredProducts.filter(p => typeof p.rating === 'number' && !isNaN(p.rating));
+    const validDeliveryTimes = filteredProducts.filter(p => typeof p.deliveryTime === 'number' && !isNaN(p.deliveryTime));
+    
+    const avgRating = validRatings.length > 0 
+      ? validRatings.reduce((sum, p) => sum + p.rating, 0) / validRatings.length 
+      : kpis.averageCustomerRating;
+    
+    const avgDeliveryTime = validDeliveryTimes.length > 0 
+      ? validDeliveryTimes.reduce((sum, p) => sum + p.deliveryTime, 0) / validDeliveryTimes.length 
+      : kpis.averageDeliveryTime;
+    
+    // Calculer les livraisons en retard uniquement si nécessaire
+    let percentLate = 0;
+    let lateDeliveriesCount = 0;
+    
+    // Optimiser en utilisant un compteur au lieu de créer une liste temporaire
+    let lateCount = 0;
+    for (let i = 0; i < filteredProducts.length; i++) {
+      const p = filteredProducts[i];
+      if (typeof p.deliveryTime === 'number' && 
+          typeof p.estimatedDeliveryTime === 'number' && 
+          p.deliveryTime > p.estimatedDeliveryTime) {
+        lateCount++;
+      }
+    }
+    
+    percentLate = lateCount > 0 ? (lateCount / productCount) * 100 : 0;
+    
+    // Calculer les avis négatifs uniquement si nécessaire
+    let negativeCount = 0;
+    for (let i = 0; i < filteredProducts.length; i++) {
+      const p = filteredProducts[i];
+      if (typeof p.rating === 'number' && p.rating <= 2) {
+        negativeCount++;
+      }
+    }
+
+    return {
+      ...kpis,
+      averageDeliveryTime: isNaN(avgDeliveryTime) ? kpis.averageDeliveryTime : avgDeliveryTime,
+      percentLateDeliveries: isNaN(percentLate) ? 0 : percentLate,
+      averageCustomerRating: isNaN(avgRating) ? kpis.averageCustomerRating : avgRating,
+      negativeReviews: negativeCount
+    };
+  }, [filteredProducts, kpis]);
+
+  // Best and worst rated products - limités à 5 pour la performance
+  const bestRatedProducts = useMemo(() => {
+    if (!filteredProducts || filteredProducts.length === 0) return [];
+    
+    // Limiter le nombre de produits à traiter
+    const maxProductsToProcess = Math.min(filteredProducts.length, 100);
+    const productsToProcess = filteredProducts.slice(0, maxProductsToProcess);
+    
+    const validProducts = productsToProcess.filter(p => 
+      p && typeof p.rating === 'number' && !isNaN(p.rating)
+    );
+    
+    return [...validProducts]
+      .sort((a, b) => b.rating - a.rating)
+      .slice(0, 5);
+  }, [filteredProducts]);
+
+  const worstRatedProducts = useMemo(() => {
+    if (!filteredProducts || filteredProducts.length === 0) return [];
+    
+    // Limiter le nombre de produits à traiter
+    const maxProductsToProcess = Math.min(filteredProducts.length, 100);
+    const productsToProcess = filteredProducts.slice(0, maxProductsToProcess);
+    
+    const validProducts = productsToProcess.filter(p => 
+      p && typeof p.rating === 'number' && !isNaN(p.rating)
+    );
+    
+    return [...validProducts]
+      .sort((a, b) => a.rating - b.rating)
+      .slice(0, 5);
+  }, [filteredProducts]);
+
+  // Formatage sécurisé des valeurs pour les KPIs - converti en fonction mémoïsée
+  const formatSafeValue = useCallback((value: number, format: (n: number) => string, fallback: string = "0") => {
+    if (value === undefined || isNaN(value)) return fallback;
+    return format(value);
+  }, []);
+
+  // Memoizing distribution data to avoid recalculations on every render
+  const ratingDistributionData = useMemo(() => {
+    return ratingDistribution.map(item => ({
+      rating: `${item.rating} étoile${item.rating > 1 ? 's' : ''}`,
+      count: item.count || 0,
+      percentage: ((item.count || 0) / totalReviews * 100).toFixed(1)
+    }));
+  }, [ratingDistribution, totalReviews]);
+
+  // Vérifier si la catégorie est disponible dans les catégories filtrées
+  const isCategoryAvailable = useMemo(() => {
+    if (filters.category === 'all') return true;
+    return availableCategories.includes(filters.category);
+  }, [filters.category, availableCategories]);
+
+  // Vérifier si la région est disponible dans les régions filtrées
+  const isRegionAvailable = useMemo(() => {
+    if (filters.state === 'all') return true;
+    return availableRegions.includes(filters.state);
+  }, [filters.state, availableRegions]);
+
+  // Réinitialiser les filtres si la sélection n'est plus valide
+  useEffect(() => {
+    if (filters.category !== 'all' && !isCategoryAvailable) {
+      setFilters({ category: 'all' });
+    }
+  }, [isCategoryAvailable, filters.category, setFilters]);
+
+  useEffect(() => {
+    if (filters.state !== 'all' && !isRegionAvailable) {
+      setFilters({ state: 'all' });
+    }
+  }, [isRegionAvailable, filters.state, setFilters]);
 
   // Filter options for the FilterSection component
-  const filterOptions = [
+  const filterOptions = useMemo(() => [
     {
       name: 'Catégorie',
       options: [
         { value: 'all', label: 'Toutes les catégories' },
-        ...metaData.categories.map(cat => ({ 
-          value: cat.toLowerCase(), 
-          label: cat 
-        }))
+        ...meta.categories
+          .filter(cat => filters.state === 'all' || availableCategories.includes(cat.toLowerCase()))
+          .map(cat => ({ 
+            value: cat.toLowerCase(), 
+            label: formatCategoryName(cat) 
+          }))
       ],
       value: filters.category,
-      onChange: (value: string) => handleFilterChange('category', value)
+      onChange: (value: string) => setFilters({ category: value })
     },
     {
       name: 'Région',
       options: [
         { value: 'all', label: 'Toutes les régions' },
-        ...metaData.states.map(state => ({ 
-          value: state.toLowerCase(), 
-          label: state 
+        ...meta.states
+          .filter(state => filters.category === 'all' || availableRegions.includes(state.toLowerCase()))
+          .map(state => ({ 
+            value: state.toLowerCase(), 
+            label: state 
+          }))
+      ],
+      value: filters.state,
+      onChange: (value: string) => setFilters({ state: value })
+    },
+    {
+      name: 'Produit',
+      options: [
+        { value: 'all', label: 'Tous les produits' },
+        ...productOptions.map(prod => ({ 
+          value: prod, 
+          label: prod 
         }))
       ],
-      value: filters.region,
-      onChange: (value: string) => handleFilterChange('region', value)
-    },
-    {
-      name: 'Période',
-      options: [
-        { value: 'all', label: 'Toute la période' },
-        { value: 'this_month', label: 'Ce mois' },
-        { value: 'last_month', label: 'Mois dernier' },
-        { value: 'last_3_months', label: '3 derniers mois' }
-      ],
-      value: filters.period,
-      onChange: (value: string) => handleFilterChange('period', value)
-    },
-    {
-      name: 'Note client',
-      options: [
-        { value: 'all', label: 'Toutes les notes' },
-        { value: '5', label: '5 étoiles' },
-        { value: '4_plus', label: '4+ étoiles' },
-        { value: 'below_3', label: 'Moins de 3 étoiles' }
-      ],
-      value: filters.rating,
-      onChange: (value: string) => handleFilterChange('rating', value)
+      value: productFilter,
+      onChange: (value: string) => setProductFilter(value)
     }
-  ];
+  ], [meta, filters, productFilter, productOptions, formatCategoryName, setFilters, availableCategories, availableRegions]);
 
-  // Handler for filter changes
-  const handleFilterChange = (filterName: string, value: string) => {
-    const newFilters = { ...filters, [filterName]: value };
-    setFilters(newFilters);
-    applyFilters(newFilters);
-  };
-
-  // Apply all filters and update data
-  const applyFilters = (currentFilters: typeof filters) => {
-    let filtered = [...productData];
-
-    // Apply category filter
-    if (currentFilters.category !== 'all') {
-      filtered = filtered.filter(item => 
-        item.category.toLowerCase() === currentFilters.category.toLowerCase()
-      );
-    }
-
-    // Apply region filter
-    if (currentFilters.region !== 'all') {
-      filtered = filtered.filter(item => 
-        item.region.toLowerCase() === currentFilters.region.toLowerCase()
-      );
-    }
-
-    // Apply rating filter
-    if (currentFilters.rating !== 'all') {
-      switch (currentFilters.rating) {
-        case '5':
-          filtered = filtered.filter(item => item.rating === 5);
-          break;
-        case '4_plus':
-          filtered = filtered.filter(item => item.rating >= 4);
-          break;
-        case 'below_3':
-          filtered = filtered.filter(item => item.rating < 3);
-          break;
-      }
-    }
-
-    // Calculate KPIs from filtered data
-    const avgRating = filtered.length > 0
-      ? filtered.reduce((sum, p) => sum + p.rating, 0) / filtered.length
-      : 0;
-    
-    const avgDeliveryTime = filtered.length > 0
-      ? filtered.reduce((sum, p) => sum + p.deliveryTime, 0) / filtered.length
-      : 0;
-
-    const lateDeliveries = filtered.filter(p => p.deliveryTime > p.estimatedDeliveryTime);
-    const percentLate = filtered.length > 0
-      ? (lateDeliveries.length / filtered.length) * 100
-      : 0;
-
-    const negativeReviews = filtered.filter(p => p.rating <= 2).length;
-
-    // Update filtered data state
-    setFilteredData({
-      bestRated: [...filtered].sort((a, b) => b.rating - a.rating).slice(0, 5),
-      worstRated: [...filtered].sort((a, b) => a.rating - b.rating).slice(0, 5),
-      kpis: {
-        ...overallKpis,
-        averageDeliveryTime: avgDeliveryTime,
-        percentLateDeliveries: percentLate,
-        averageCustomerRating: avgRating,
-        negativeReviews: negativeReviews
-      }
+  // Fonction pour réinitialiser tous les filtres
+  const resetAllFilters = () => {
+    setFilters({
+      state: "all",
+      category: "all"
     });
+    setProductFilter("all");
   };
 
-  // Initial filter application
-  useEffect(() => {
-    applyFilters(filters);
-  }, []);
+  // Loading and error states
+  if (isLoading)
+    return (
+      <DashboardLayout title="Satisfaction client">
+        <Spinner />
+      </DashboardLayout>
+    );
+
+  if (error)
+    return (
+      <DashboardLayout title="Satisfaction client">
+        <ErrorBanner error={error} />
+      </DashboardLayout>
+    );
+
+  // Message d'alerte quand aucun produit n'est disponible après filtrage
+  const NoDataMessage = () => (
+    <div className="flex flex-col items-center justify-center h-[300px] text-center p-4">
+      <AlertCircle size={48} className="text-orange-500 mb-4" />
+      <h3 className="text-lg font-medium mb-2">Aucune donnée disponible</h3>
+      <p className="text-muted-foreground max-w-md">
+        Aucun produit ne correspond aux filtres sélectionnés. Veuillez modifier vos critères de filtrage.
+      </p>
+    </div>
+  );
+
+  // Message d'alerte quand aucune notation n'est disponible
+  const NoRatingsMessage = () => (
+    <div className="flex flex-col items-center justify-center h-[300px] text-center p-4">
+      <Star size={48} className="text-orange-500 mb-4" />
+      <h3 className="text-lg font-medium mb-2">Aucune note disponible</h3>
+      <p className="text-muted-foreground max-w-md">
+        Les produits sélectionnés n'ont pas encore été notés par les clients.
+      </p>
+    </div>
+  );
+
+  // Optimiser en pré-filtrant les données pour le ScatterPlot
+  const scatterPlotData = useMemo(() => {
+    if (filters.category === 'all') return [];
+    
+    return filteredProducts.filter(p => 
+      typeof p.deliveryTime === 'number' && !isNaN(p.deliveryTime) &&
+      typeof p.rating === 'number' && !isNaN(p.rating) &&
+      typeof p.price === 'number' && !isNaN(p.price)
+    ).slice(0, 200); // Limiter à 200 points pour de meilleures performances
+  }, [filteredProducts, filters.category]);
+
+  // Vérifier si des données sont disponibles pour le ScatterPlot
+  const hasScatterData = scatterPlotData.length > 0;
 
   return (
     <DashboardLayout title="Satisfaction client & Livraison">
       {/* Filters */}
-      <FilterSection filters={filterOptions} />
+      <FilterSection filters={filterOptions} onReset={resetAllFilters} />
       
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KpiCard
-          title="Délai moyen livraison"
-          value={`${filteredData.kpis.averageDeliveryTime.toFixed(1)} jours`}
-          trend={{ direction: 'down', value: '-0.3j vs last month' }}
-          icon={<Clock size={18} />}
-        />
-        <KpiCard
-          title="Livraisons en retard"
-          value={`${filteredData.kpis.percentLateDeliveries.toFixed(1)}%`}
-          trend={{ direction: 'down', value: '-2.1% vs last month' }}
-        />
-        <KpiCard
-          title="Note moyenne"
-          value={`${filteredData.kpis.averageCustomerRating.toFixed(1)}/5`}
-          trend={{ direction: 'up', value: '+0.2 vs last month' }}
-          icon={<Star size={18} />}
-        />
-        <KpiCard
-          title="Avis négatifs"
-          value={formatNumber(filteredData.kpis.negativeReviews)}
-          trend={{ direction: 'down', value: '-5% vs last month' }}
-          description="Notes ≤ 2"
-        />
-      </div>
-      
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Customer Ratings Distribution */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">
-              <div className="flex items-center">
-                <Star className="mr-2 text-dashboard-purple" size={18} />
-                Distribution des scores clients
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BarChart
-              data={ratingDistribution.map(item => ({
-                rating: `${item.rating} étoile${item.rating > 1 ? 's' : ''}`,
-                count: item.count,
-                percentage: (item.count / totalReviews * 100).toFixed(1)
-              }))}
-              xAxisDataKey="rating"
-              bars={[
-                { dataKey: "count", name: "Nombre d'avis", fill: "#8b5cf6" }
-              ]}
+      {!hasProducts ? (
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <NoDataMessage />
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* KPIs */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <KpiCard
+              title="Délai moyen livraison"
+              value={hasProducts ? formatSafeValue(filteredKpis.averageDeliveryTime, n => `${n.toFixed(1)} jours`, "N/A") : "N/A"}
+              trend={{ direction: 'down', value: '-0.3j vs last month' }}
+              icon={<Clock size={18} />}
             />
-          </CardContent>
-        </Card>
-        
-        {/* Delivery vs Rating Scatter Plot */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">
-              <div className="flex items-center">
-                <Clock className="mr-2 text-dashboard-purple" size={18} />
-                Délai de livraison vs Note client
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScatterPlot
-              data={productData}
-              xAxisDataKey="deliveryTime"
-              yAxisDataKey="rating"
-              zAxisDataKey="price"
-              name="Produits"
-              fill="#8b5cf6"
+            <KpiCard
+              title="Livraisons en retard"
+              value={hasProducts ? formatSafeValue(filteredKpis.percentLateDeliveries, n => `${n.toFixed(1)}%`, "0%") : "N/A"}
+              trend={{ direction: 'down', value: '-2.1% vs last month' }}
             />
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Best and Worst Rated Products Tables */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Best Rated Products */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">
-              <div className="flex items-center">
-                <Star className="mr-2 text-dashboard-green" size={18} />
-                Top 5 produits les mieux notés
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Produit</TableHead>
-                  <TableHead>Catégorie</TableHead>
-                  <TableHead className="text-right">Note</TableHead>
-                  <TableHead className="text-right">Délai (j)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredData.bestRated.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-medium text-dashboard-green">{product.rating}</span>
-                    </TableCell>
-                    <TableCell className="text-right">{product.deliveryTime}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-        
-        {/* Worst Rated Products */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">
-              <div className="flex items-center">
-                <ArrowDown className="mr-2 text-dashboard-red" size={18} />
-                Top 5 produits les plus mal notés
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Produit</TableHead>
-                  <TableHead>Catégorie</TableHead>
-                  <TableHead className="text-right">Note</TableHead>
-                  <TableHead className="text-right">Délai (j)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredData.worstRated.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-medium text-dashboard-red">{product.rating}</span>
-                    </TableCell>
-                    <TableCell className="text-right">{product.deliveryTime}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+            <KpiCard
+              title="Note moyenne"
+              value={hasRatedProducts ? formatSafeValue(filteredKpis.averageCustomerRating, n => `${n.toFixed(1)}/5`, "N/A") : "N/A"}
+              trend={{ direction: 'up', value: '+0.2 vs last month' }}
+              icon={<Star size={18} />}
+            />
+            <KpiCard
+              title="Avis négatifs"
+              value={hasRatedProducts ? formatNumber(filteredKpis.negativeReviews) : "N/A"}
+              trend={{ direction: 'down', value: '-5% vs last month' }}
+              description="Notes ≤ 2"
+            />
+          </div>
+          
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Customer Ratings Distribution */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">
+                  <div className="flex items-center">
+                    <Star className="mr-2 text-dashboard-purple" size={18} />
+                    Distribution des scores clients
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!hasRatedProducts ? (
+                  <NoRatingsMessage />
+                ) : (
+                  <BarChart
+                    data={ratingDistributionData}
+                    xAxisDataKey="rating"
+                    bars={[
+                      { dataKey: "count", name: "Nombre d'avis", fill: "#8b5cf6" }
+                    ]}
+                  />
+                )}
+              </CardContent>
+            </Card>
+            
+            {/* Delivery vs Rating Scatter Plot */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">
+                  <div className="flex items-center">
+                    <Clock className="mr-2 text-dashboard-purple" size={18} />
+                    Délai de livraison vs Note client
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {filters.category === 'all' ? (
+                  <div className="flex flex-col items-center justify-center h-[300px] text-center p-4">
+                    <div className="text-muted-foreground mb-2">
+                      <Clock size={40} className="mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium mb-2">Graphique non affiché</p>
+                      <p>Pour optimiser les performances, veuillez sélectionner une catégorie spécifique pour afficher ce graphique.</p>
+                    </div>
+                  </div>
+                ) : !hasProducts ? (
+                  <NoDataMessage />
+                ) : !hasScatterData ? (
+                  <NoRatingsMessage />
+                ) : (
+                  <ScatterPlot
+                    data={scatterPlotData}
+                    xAxisDataKey="deliveryTime"
+                    yAxisDataKey="rating"
+                    zAxisDataKey="price"
+                    name="Produits"
+                    fill="#8b5cf6"
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Best and Worst Rated Products Tables */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Best Rated Products */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">
+                  <div className="flex items-center">
+                    <Star className="mr-2 text-dashboard-green" size={18} />
+                    Top 5 produits les mieux notés
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!hasRatedProducts ? (
+                  <div className="py-8">
+                    <NoRatingsMessage />
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead>Catégorie</TableHead>
+                        <TableHead className="text-right">Note</TableHead>
+                        <TableHead className="text-right">Délai (j)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bestRatedProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground">
+                            Aucune donnée disponible
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        bestRatedProducts.map((product) => (
+                          <TableRow key={product.id}>
+                            <TableCell className="font-medium">{product.name || "Sans nom"}</TableCell>
+                            <TableCell>{formatCategoryName(product.category)}</TableCell>
+                            <TableCell className="text-right">
+                              <span className="flex items-center justify-end">
+                                {typeof product.rating === 'number' ? product.rating.toFixed(1) : "N/A"} 
+                                <Star size={14} className="ml-1 text-yellow-500" />
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {typeof product.deliveryTime === 'number' ? product.deliveryTime : "N/A"}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+            
+            {/* Worst Rated Products */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">
+                  <div className="flex items-center">
+                    <Star className="mr-2 text-dashboard-red" size={18} />
+                    Top 5 produits les moins bien notés
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!hasRatedProducts ? (
+                  <div className="py-8">
+                    <NoRatingsMessage />
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead>Catégorie</TableHead>
+                        <TableHead className="text-right">Note</TableHead>
+                        <TableHead className="text-right">Délai (j)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {worstRatedProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground">
+                            Aucune donnée disponible
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        worstRatedProducts.map((product) => (
+                          <TableRow key={product.id}>
+                            <TableCell className="font-medium">{product.name || "Sans nom"}</TableCell>
+                            <TableCell>{formatCategoryName(product.category)}</TableCell>
+                            <TableCell className="text-right">
+                              <span className="flex items-center justify-end">
+                                {typeof product.rating === 'number' ? product.rating.toFixed(1) : "N/A"} 
+                                <Star size={14} className="ml-1 text-yellow-500" />
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {typeof product.deliveryTime === 'number' ? product.deliveryTime : "N/A"}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
     </DashboardLayout>
   );
 };

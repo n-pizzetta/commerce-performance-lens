@@ -1,285 +1,388 @@
-import React, { useState } from 'react';
-import DashboardLayout from '@/components/DashboardLayout';
-import KpiCard from '@/components/KpiCard';
-import BarChart from '@/components/charts/BarChart';
-import LineChart from '@/components/charts/LineChart';
-import PieChart from '@/components/charts/PieChart';
-import FilterSection from '@/components/FilterSection';
-import CsvUploader, { FileType } from '@/components/CsvUploader';
-import { categoryData, regionData, monthlyData, overallKpis, metaData } from '@/utils/mockData';
-import { ShoppingCart, DollarSign, Clock, Star } from 'lucide-react';
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useToast } from "@/components/ui/use-toast";
-import { generateDashboardData } from '@/services/csvDataService';
+/*  ────────────────────────────────────────────────────────────────────
+    src/pages/BusinessOverview.tsx
+    Tableau de bord – Vue globale du business
+   ──────────────────────────────────────────────────────────────────── */
 
-// This can be moved to a context or state management solution in a more complex app
-interface UploadedDataState {
-  customers: any[];
-  geolocation: any[];
-  orderItems: any[];
-  orderPayments: any[];
-  orderReviews: any[];
-  orders: any[];
-  products: any[];
-  sellers: any[];
-  categoryTranslation: any[];
-}
+import React, { useMemo, useEffect, useCallback } from "react";
+import DashboardLayout       from "@/components/DashboardLayout";
+import FilterSection         from "@/components/FilterSection";
+import KpiCard               from "@/components/KpiCard";
+import BarChart              from "@/components/charts/BarChart";
+import PieChart              from "@/components/charts/PieChart";
+import LineChart             from "@/components/charts/LineChart";
+import Spinner               from "@/components/ui/Spinner";
+import ErrorBanner           from "@/components/ui/ErrorBanner";
+import { ShoppingCart, DollarSign, Clock, Star } from "lucide-react";
 
+import { useDashboardData }  from "@/contexts/DataContext";
+import { Category, Region, MonthlyData } from "@/utils/mockData";
+
+// Nombre maximum de régions/catégories à afficher dans les filtres
+const MAX_FILTER_OPTIONS = 50;
+
+/* -------------------------------------------------------------------------- */
+/*  Utils                                                                     */
+/* -------------------------------------------------------------------------- */
+const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
+
+/**
+ * Formate le nom d'une catégorie pour l'affichage
+ */
+const formatCategoryName = (name: string | undefined): string => {
+  if (!name) return "Catégorie non spécifiée";
+  
+  // Convertir les underscores en espaces et mettre en majuscule les premières lettres
+  return name
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Component                                                                 */
+/* -------------------------------------------------------------------------- */
 const BusinessOverview: React.FC = () => {
-  const { toast } = useToast();
-  
-  // State for filters
-  const [yearFilter, setYearFilter] = useState('all');
-  const [regionFilter, setRegionFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  
-  // State for data
-  const [categories, setCategories] = useState(categoryData);
-  const [regions, setRegions] = useState(regionData);
-  const [monthly, setMonthly] = useState(monthlyData);
-  const [kpis, setKpis] = useState(overallKpis);
-  
-  // Track which data has been uploaded
-  const [uploadedData, setUploadedData] = useState<UploadedDataState>({
-    customers: [],
-    geolocation: [],
-    orderItems: [],
-    orderPayments: [],
-    orderReviews: [],
-    orders: [],
-    products: [],
-    sellers: [],
-    categoryTranslation: []
-  });
-  
-  const [uploadCounts, setUploadCounts] = useState<Record<string, number>>({});
-  const [isUsingRealData, setIsUsingRealData] = useState(false);
-  
-  // Handle CSV file load
-  const handleCsvDataLoad = (fileType: FileType, data: any[]) => {
-    // Update the uploaded data state
-    setUploadedData(prev => ({
-      ...prev,
-      [fileType]: data
-    }));
-    
-    // Track upload counts
-    setUploadCounts(prev => ({
-      ...prev,
-      [fileType]: data.length
-    }));
-    
-    // Set flag to indicate real data is being used
-    setIsUsingRealData(true);
-    
-    // If we have enough data, we can generate dashboard data
-    const hasEnoughData = checkIfEnoughDataForDashboard({
-      ...uploadedData,
-      [fileType]: data
+  /* ---- données du contexte ---- */
+  const {
+    categories,
+    regions,
+    monthlyData,
+    kpis,
+    meta,
+    isLoading,
+    error,
+    filters,
+    setFilters
+  } = useDashboardData();
+
+  /* ---- filtrage cumulatif ---- */
+  const monthFiltered = useMemo(() => {
+    return monthlyData.filter((m) =>
+      filters.year === "all" ? true : m.month.startsWith(filters.year)
+    );
+  }, [monthlyData, filters.year]);
+
+  const regionFiltered = useMemo(() => {
+    return regions.filter((r) => {
+      if (filters.state === "all") return true;
+      return (r.name ?? "").toLowerCase() === filters.state;
     });
+  }, [regions, filters.state]);
+
+  const categoryFiltered = useMemo(() => {
+    return categories.filter((c) => {
+      if (filters.category === "all") return true;
+      return (c.name ?? "").toLowerCase() === filters.category;
+    });
+  }, [categories, filters.category]);
+
+  /* ---- Obtenir les années disponibles en fonction des filtres ---- */
+  const availableYears = useMemo(() => {
+    if (!monthlyData || monthlyData.length === 0) return [];
     
-    if (hasEnoughData) {
-      try {
-        const dashboardData = generateDashboardData(
-          uploadedData.products.length > 0 ? uploadedData.products : data.length > 0 && fileType === 'products' ? data : [],
-          uploadedData.orderItems.length > 0 ? uploadedData.orderItems : data.length > 0 && fileType === 'order_items' ? data : [],
-          uploadedData.orders.length > 0 ? uploadedData.orders : data.length > 0 && fileType === 'orders' ? data : [],
-          uploadedData.orderReviews.length > 0 ? uploadedData.orderReviews : data.length > 0 && fileType === 'order_reviews' ? data : []
-        );
-        
-        // Update the dashboard data
-        setCategories(dashboardData.categories);
-        setRegions(dashboardData.regions);
-        setMonthly(dashboardData.monthlyData);
-        
-        // Calculate new KPIs
-        if (dashboardData.categories.length > 0) {
-          const totalOrders = dashboardData.categories.reduce((sum, cat) => sum + cat.orders, 0);
-          const totalRevenue = dashboardData.categories.reduce((sum, cat) => sum + cat.revenue, 0);
-          const avgRating = dashboardData.categories.reduce((sum, cat) => sum + cat.averageRating * cat.orders, 0) / totalOrders;
-          const avgDelivery = dashboardData.categories.reduce((sum, cat) => sum + cat.averageDeliveryTime * cat.orders, 0) / totalOrders;
-          
-          setKpis({
-            totalOrders,
-            totalRevenue,
-            averageProductPrice: totalRevenue / totalOrders,
-            averageDeliveryTime: avgDelivery,
-            averageCustomerRating: avgRating,
-            percentLateDeliveries: 0, // Need to calculate from data
-            returnsCount: 0 // Need to calculate from data
-          });
-        }
-        
-        toast({
-          title: "Dashboard mis à jour",
-          description: "Les graphiques ont été mis à jour avec vos données"
-        });
-      } catch (error) {
-        console.error("Error generating dashboard data:", error);
+    const uniqueYears = new Set<string>();
+    
+    // Parcourir les données mensuelles pour trouver les années disponibles
+    for (const month of monthlyData) {
+      // Extraire l'année du mois (format: "YYYY-MM")
+      const year = month.month.split('-')[0];
+      if (!year) continue;
+      
+      // Ajouter l'année au Set si elle correspond aux filtres actuels
+      if ((filters.state === 'all' || regionFiltered.length > 0) && 
+          (filters.category === 'all' || categoryFiltered.length > 0)) {
+        uniqueYears.add(year);
       }
     }
-  };
+    
+    return Array.from(uniqueYears).sort();
+  }, [monthlyData, filters.state, filters.category, regionFiltered, categoryFiltered]);
 
-  // Check if we have enough data to generate the dashboard
-  const checkIfEnoughDataForDashboard = (data: UploadedDataState): boolean => {
-    // At minimum we need products, order items, and orders
-    return (
-      data.products.length > 0 &&
-      data.orderItems.length > 0 &&
-      data.orders.length > 0
-    );
-  };
-  
-  // Filter data based on current filters
-  const filterData = (year: string, region: string, category: string) => {
-    // Filter monthly data by year
-    const filteredMonthly = monthlyData.filter(item => {
-      if (year === 'all') return true;
-      return item.month.startsWith(year);
-    });
-
-    // Filter regions
-    const filteredRegions = regionData.filter(item => {
-      if (region === 'all') return true;
-      return item.name.toLowerCase() === region.toLowerCase();
-    });
-
-    // Filter categories
-    const filteredCategories = categoryData.filter(item => {
-      if (category === 'all') return true;
-      return item.name.toLowerCase() === category.toLowerCase();
-    });
-
-    // Update state with filtered data
-    setMonthly(filteredMonthly);
-    setRegions(filteredRegions);
-    setCategories(filteredCategories);
-
-    // Update KPIs based on filtered data
-    if (category !== 'all' || region !== 'all' || year !== 'all') {
-      const filteredKpis = {
-        ...overallKpis,
-        totalOrders: filteredCategories.reduce((sum, cat) => sum + cat.orders, 0),
-        totalRevenue: filteredCategories.reduce((sum, cat) => sum + cat.revenue, 0),
-        averageProductPrice: filteredCategories.reduce((sum, cat) => sum + cat.averagePrice, 0) / filteredCategories.length,
-        averageCustomerRating: filteredCategories.reduce((sum, cat) => sum + cat.averageRating, 0) / filteredCategories.length,
-      };
-      setKpis(filteredKpis);
-    } else {
-      setKpis(overallKpis);
+  /* ---- Obtenir les régions disponibles en fonction des filtres ---- */
+  const availableRegions = useMemo(() => {
+    if (!regions || regions.length === 0) return [];
+    
+    const uniqueRegions = new Set<string>();
+    
+    // Pour chaque région, vérifier si elle correspond aux filtres
+    for (const region of regions) {
+      if (!region.name) continue;
+      
+      // Si un filtre d'année est appliqué, vérifier si cette région a des données pour cette année
+      if (filters.year !== 'all') {
+        const hasData = monthlyData.some(month => 
+          month.month.startsWith(filters.year) && 
+          regionFiltered.some(r => r.name === region.name)
+        );
+        if (!hasData) continue;
+      }
+      
+      // Si un filtre de catégorie est appliqué, vérifier si cette région a des données pour cette catégorie
+      if (filters.category !== 'all') {
+        // Vérifier si cette région a des données pour la catégorie sélectionnée
+        const hasCategory = regionFiltered.some(r => 
+          r.name === region.name && 
+          categoryFiltered.some(c => c.name.toLowerCase() === filters.category)
+        );
+        
+        if (!hasCategory) continue;
+      }
+      
+      // Ajouter la région au Set
+      uniqueRegions.add(region.name.toLowerCase());
+      
+      // Limiter le nombre de régions pour des raisons de performance
+      if (uniqueRegions.size >= MAX_FILTER_OPTIONS) break;
     }
-  };
+    
+    return Array.from(uniqueRegions).sort();
+  }, [regions, monthlyData, filters.year, filters.category, regionFiltered, categoryFiltered]);
 
-  // Update filters and filter data
-  const handleYearFilter = (value: string) => {
-    setYearFilter(value);
-    filterData(value, regionFilter, categoryFilter);
-  };
+  /* ---- Obtenir les catégories disponibles en fonction des filtres ---- */
+  const availableCategories = useMemo(() => {
+    if (!categories || categories.length === 0) return [];
+    
+    const uniqueCategories = new Set<string>();
+    
+    // Pour chaque catégorie, vérifier si elle correspond aux filtres
+    for (const category of categories) {
+      if (!category.name) continue;
+      
+      // Si un filtre d'année est appliqué, vérifier si cette catégorie a des données pour cette année
+      if (filters.year !== 'all') {
+        const hasData = monthlyData.some(month => 
+          month.month.startsWith(filters.year) && 
+          categoryFiltered.some(c => c.name === category.name)
+        );
+        if (!hasData) continue;
+      }
+      
+      // Si un filtre de région est appliqué, vérifier si cette catégorie a des données pour cette région
+      if (filters.state !== 'all') {
+        // Vérifier si cette catégorie a des données pour la région sélectionnée
+        const hasRegion = categoryFiltered.some(c => 
+          c.name === category.name && 
+          regionFiltered.some(r => r.name.toLowerCase() === filters.state)
+        );
+        
+        if (!hasRegion) continue;
+      }
+      
+      // Ajouter la catégorie au Set
+      uniqueCategories.add(category.name.toLowerCase());
+      
+      // Limiter le nombre de catégories pour des raisons de performance
+      if (uniqueCategories.size >= MAX_FILTER_OPTIONS) break;
+    }
+    
+    return Array.from(uniqueCategories).sort();
+  }, [categories, monthlyData, filters.year, filters.state, categoryFiltered, regionFiltered]);
 
-  const handleRegionFilter = (value: string) => {
-    setRegionFilter(value);
-    filterData(yearFilter, value, categoryFilter);
-  };
+  /* ---- Vérifier si les filtres sélectionnés sont valides ---- */
+  const isCategoryAvailable = useMemo(() => {
+    if (filters.category === 'all') return true;
+    return availableCategories.includes(filters.category);
+  }, [filters.category, availableCategories]);
 
-  const handleCategoryFilter = (value: string) => {
-    setCategoryFilter(value);
-    filterData(yearFilter, regionFilter, value);
-  };
+  const isRegionAvailable = useMemo(() => {
+    if (filters.state === 'all') return true;
+    return availableRegions.includes(filters.state);
+  }, [filters.state, availableRegions]);
 
-  // Filter options for the filter section from metaData
+  const isYearAvailable = useMemo(() => {
+    if (filters.year === 'all') return true;
+    return availableYears.includes(filters.year);
+  }, [filters.year, availableYears]);
+
+  /* ---- Réinitialiser les filtres si la sélection n'est plus valide ---- */
+  useEffect(() => {
+    if (filters.category !== 'all' && !isCategoryAvailable) {
+      setFilters({ category: 'all' });
+    }
+  }, [isCategoryAvailable, filters.category, setFilters]);
+
+  useEffect(() => {
+    if (filters.state !== 'all' && !isRegionAvailable) {
+      setFilters({ state: 'all' });
+    }
+  }, [isRegionAvailable, filters.state, setFilters]);
+
+  useEffect(() => {
+    if (filters.year !== 'all' && !isYearAvailable) {
+      setFilters({ year: 'all' });
+    }
+  }, [isYearAvailable, filters.year, setFilters]);
+
+  /* ---- KPI recalculés sur l'échantillon courant ---- */
+  const localKpis = useMemo(() => {
+    const totOrders  = categoryFiltered.reduce((s, c) => s + c.orders,   0);
+    const totRevenue = categoryFiltered.reduce((s, c) => s + c.revenue, 0);
+
+    return {
+      ...kpis,
+      totalOrders:        totOrders  || kpis.totalOrders,
+      totalRevenue:       totRevenue || kpis.totalRevenue,
+      averageProductPrice:
+        totOrders > 0 ? +(totRevenue / totOrders).toFixed(2) : kpis.averageProductPrice,
+    };
+  }, [categoryFiltered, kpis]);
+
+  /* ---- options des select ---- */
   const filterOptions = [
     {
-      name: 'Année',
+      name: "Année",
       options: [
-        { value: 'all', label: 'Toutes les années' },
-        ...metaData.years.map(year => ({ value: year.toString(), label: year.toString() }))
+        { value: "all", label: "Toutes" },
+        ...meta.years
+          .filter(y => availableYears.includes(String(y)))
+          .map((y) => ({ value: String(y), label: String(y) })),
       ],
-      value: yearFilter,
-      onChange: handleYearFilter
+      value: filters.year,
+      onChange: (value: string) => setFilters({ year: value }),
     },
     {
-      name: 'Région',
+      name: "Région",
       options: [
-        { value: 'all', label: 'Toutes les régions' },
-        ...metaData.states.map(state => ({ value: state.toLowerCase(), label: state }))
+        { value: "all", label: "Toutes" },
+        ...meta.states
+          .filter(s => availableRegions.includes(s.toLowerCase()))
+          .map((s) => ({ value: s.toLowerCase(), label: s })),
       ],
-      value: regionFilter,
-      onChange: handleRegionFilter
+      value: filters.state,
+      onChange: (value: string) => setFilters({ state: value }),
     },
     {
-      name: 'Catégorie',
+      name: "Catégorie",
       options: [
-        { value: 'all', label: 'Toutes les catégories' },
-        ...metaData.categories.map(category => ({ value: category.toLowerCase(), label: category }))
+        { value: "all", label: "Toutes" },
+        ...meta.categories
+          .filter(c => availableCategories.includes(c.toLowerCase()))
+          .map((c) => ({ 
+            value: c.toLowerCase(), 
+            label: formatCategoryName(c) 
+          })),
       ],
-      value: categoryFilter,
-      onChange: handleCategoryFilter
-    }
+      value: filters.category,
+      onChange: (value: string) => setFilters({ category: value }),
+    },
   ];
 
-  // Format numbers for display
-  const formatNumber = (num: number) => new Intl.NumberFormat('fr-FR').format(num);
+  /* ---- loading / erreur ---- */
+  if (isLoading)
+    return (
+      <DashboardLayout title="Vue globale">
+        <Spinner />
+      </DashboardLayout>
+    );
 
+  if (error)
+    return (
+      <DashboardLayout title="Vue globale">
+        <ErrorBanner error={error} />
+      </DashboardLayout>
+    );
+
+  /* ---- fonction pour réinitialiser tous les filtres ---- */
+  const resetAllFilters = () => {
+    setFilters({
+      year: "all",
+      state: "all",
+      category: "all"
+    });
+  };
+
+  /* ---------------------------------------------------------------------- */
+  /*  RENDER                                                                */
+  /* ---------------------------------------------------------------------- */
   return (
     <DashboardLayout title="Vue globale du business">
-      {/* Filters */}
-      <FilterSection filters={filterOptions} />
-      
-      {/* KPIs */}
+      {/* Filtres ----------------------------------------------------------- */}
+      <FilterSection filters={filterOptions} onReset={resetAllFilters} />
+
+      {/* KPI --------------------------------------------------------------- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KpiCard 
+        <KpiCard
           title="Nombre total de commandes"
-          value={formatNumber(kpis.totalOrders)}
+          value={fmt(localKpis.totalOrders)}
           icon={<ShoppingCart size={20} />}
         />
-        <KpiCard 
+        <KpiCard
           title="Chiffre d'affaires total"
-          value={`${formatNumber(kpis.totalRevenue)} €`}
+          value={`${fmt(localKpis.totalRevenue)} €`}
           icon={<DollarSign size={20} />}
         />
-        <KpiCard 
+        <KpiCard
           title="Délai moyen de livraison"
-          value={`${kpis.averageDeliveryTime.toFixed(1)} jours`}
+          value={`${localKpis.averageDeliveryTime.toFixed(1)} j`}
           icon={<Clock size={20} />}
         />
-        <KpiCard 
+        <KpiCard
           title="Note client moyenne"
-          value={`${kpis.averageCustomerRating.toFixed(1)}/5`}
+          value={`${localKpis.averageCustomerRating.toFixed(1)}/5`}
           icon={<Star size={20} />}
         />
       </div>
-      
-      {/* Charts */}
+
+      {/* Graphiques -------------------------------------------------------- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div>
-          <h3 className="text-lg font-medium mb-4">Top 10 Catégories par Chiffre d'Affaires</h3>
-          <BarChart 
-            data={[...categories].sort((a, b) => b.revenue - a.revenue).slice(0, 10)}
+        <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm">
+          <h3 className="text-lg font-medium mb-4">Top 10 Catégories par chiffre d'affaires</h3>
+          <BarChart
+            data={[...categoryFiltered]
+              .sort((a, b) => b.revenue - a.revenue)
+              .slice(0, 10)
+              .map(category => ({
+                ...category,
+                name: formatCategoryName(category.name)
+              }))}
             xAxisDataKey="name"
-            bars={[
-              { dataKey: "revenue", name: "Chiffre d'affaires", fill: "#8b5cf6" }
+            bars={[{ dataKey: "revenue", name: "CA", fill: "#8b5cf6" }]}
+            formatTooltipValue={(value, name) => {
+              if (name === "CA") {
+                return new Intl.NumberFormat('fr-FR', { 
+                  maximumFractionDigits: 0,
+                  useGrouping: true
+                }).format(value);
+              }
+              return value.toString();
+            }}
+          />
+        </div>
+
+        <PieChart
+          title="Répartition des ventes par région"
+          data={regionFiltered.map((r) => ({ name: r.name, value: r.revenue }))}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm">
+          <h3 className="text-lg font-medium mb-4">Tendance mensuelle du chiffre d'affaires</h3>
+          <LineChart
+            data={monthFiltered}
+            xAxisDataKey="month"
+            lines={[
+              { dataKey: "revenue", name: "CA", stroke: "#8b5cf6" },
             ]}
+            formatTooltipValue={(value, name) => {
+              if (name === "CA") {
+                return new Intl.NumberFormat('fr-FR', { 
+                  maximumFractionDigits: 0,
+                  useGrouping: true
+                }).format(value);
+              }
+              return value.toString();
+            }}
           />
         </div>
         
-        <PieChart 
-          title="Répartition des Ventes par Région"
-          data={regions.map(region => ({
-            name: region.name,
-            value: region.revenue
-          }))}
-        />
-      </div>
-      
-      <div className="grid grid-cols-1 gap-6">
-        <div>
-          <h3 className="text-lg font-medium mb-4">Évolution Mensuelle des Commandes</h3>
-          <LineChart 
-            data={monthly}
+        <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm">
+          <h3 className="text-lg font-medium mb-4">Tendance mensuelle des commandes</h3>
+          <LineChart
+            data={monthFiltered}
             xAxisDataKey="month"
             lines={[
-              { dataKey: "orders", name: "Commandes", stroke: "#8b5cf6" },
-              { dataKey: "revenue", name: "Chiffre d'affaires", stroke: "#0ea5e9" }
+              { dataKey: "orders", name: "Commandes", stroke: "#22c55e" },
             ]}
           />
         </div>
