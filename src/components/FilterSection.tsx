@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { 
   Select, 
   SelectContent, 
@@ -24,7 +24,8 @@ interface FilterSectionProps {
   onReset?: () => void;
 }
 
-const FilterSection: React.FC<FilterSectionProps> = ({ filters, onReset }) => {
+// Utilisation de memo pour éviter les re-renders inutiles
+const FilterSection: React.FC<FilterSectionProps> = memo(({ filters, onReset }) => {
   return (
     <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm mb-6">
       <div className="flex items-center justify-between mb-4">
@@ -46,20 +47,30 @@ const FilterSection: React.FC<FilterSectionProps> = ({ filters, onReset }) => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filters.map((filter) => (
-          <div key={filter.name}>
+          <div key={filter.name} className="filter-item">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
               {filter.name}
             </label>
-            <Select value={filter.value} onValueChange={filter.onChange}>
+            <Select 
+              value={filter.value} 
+              onValueChange={filter.onChange}
+              disabled={filter.options.length <= 1}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={`Sélectionner ${filter.name.toLowerCase()}`} />
               </SelectTrigger>
               <SelectContent>
-                {filter.options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                {filter.options.length > 0 ? (
+                  filter.options.map((option) => (
+                    <SelectItem key={`${filter.name}-${option.value}`} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="all" disabled>
+                    Aucune option disponible
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -67,6 +78,8 @@ const FilterSection: React.FC<FilterSectionProps> = ({ filters, onReset }) => {
       </div>
     </div>
   );
-};
+});
+
+FilterSection.displayName = 'FilterSection';
 
 export default FilterSection;

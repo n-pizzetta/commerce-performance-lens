@@ -7,7 +7,7 @@ import ScatterPlot from '@/components/charts/ScatterPlot';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDashboardData } from '@/contexts/DataContext';
-import { BarChart as BarChartIcon, ArrowRight, AlertCircle } from 'lucide-react';
+import { BarChart as BarChartIcon, Star, DollarSign, ArrowRight, AlertCircle, Sigma } from 'lucide-react';
 import Spinner from '@/components/ui/Spinner';
 import ErrorBanner from '@/components/ui/ErrorBanner';
 
@@ -361,9 +361,19 @@ const ProductProfitability: React.FC = () => {
   };
   
   const formatCurrency = (num: number) => {
-    if (isNaN(num) || num === undefined) return "0 €";
+    if (isNaN(num) || num === undefined) return "R$ 0";
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(num);
   };
+
+  const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(n);
+
+  /**
+   * Formate une valeur monétaire en reais brésiliens
+   */
+  const fmtCurrency = (n: number) => new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(n);
   
   const formatPercent = (num: number) => {
     if (isNaN(num) || num === undefined) return "0%";
@@ -467,22 +477,24 @@ const ProductProfitability: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <KpiCard
               title="Prix moyen par catégorie"
-              value={formatCurrency(filteredKpis.averagePricePerCategory)}
-              icon={<BarChartIcon size={18} />}
+              value={`R$ ${fmtCurrency(filteredKpis.averagePricePerCategory)}`}
+              icon={<BarChartIcon size={20} />}
             />
             <KpiCard
               title="Coût moyen d'expédition"
-              value={formatCurrency(filteredKpis.averageShippingCost)}
+              value={`R$ ${fmtCurrency(filteredKpis.averageShippingCost)}`}
+              icon={<DollarSign size={20} />}
             />
             <KpiCard
               title="Ratio de profit moyen"
               value={formatPercent(filteredKpis.averageProfitRatio * 100)}
               description="(Prix - Coût) / Poids"
+              icon={<Sigma size={20} />}
             />
             <KpiCard
               title="Note moyenne"
               value={isNaN(filteredKpis.averageCustomerRating) ? "N/A" : filteredKpis.averageCustomerRating.toFixed(1)}
-            />
+              icon={<Star size={20} />}/>
           </div>
           
           {/* Charts */}
@@ -568,8 +580,8 @@ const ProductProfitability: React.FC = () => {
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">{product.name || "Sans nom"}</TableCell>
                         <TableCell>{formatCategoryName(product.category)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(product.price)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(product.shippingCost)}</TableCell>
+                        <TableCell className="text-right">{`R$ ${fmtCurrency(product.price)}`}</TableCell>
+                        <TableCell className="text-right">{`R$ ${fmtCurrency(product.shippingCost)}`}</TableCell>
                         <TableCell className="text-right">{(product.weight / 1000).toFixed(1)}</TableCell>
                         <TableCell className="text-right">
                           {formatPercent(((product.price - product.shippingCost) / product.weight) * 100)}

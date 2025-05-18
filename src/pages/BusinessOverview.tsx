@@ -23,7 +23,15 @@ const MAX_FILTER_OPTIONS = 50;
 /* -------------------------------------------------------------------------- */
 /*  Utils                                                                     */
 /* -------------------------------------------------------------------------- */
-const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
+const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(n);
+
+/**
+ * Formate une valeur monétaire en reais brésiliens
+ */
+const fmtCurrency = (n: number) => new Intl.NumberFormat("pt-BR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+}).format(n);
 
 /**
  * Formate le nom d'une catégorie pour l'affichage
@@ -52,16 +60,18 @@ const BusinessOverview: React.FC = () => {
     isLoading,
     error,
     filters,
-    setFilters
+    setFilters,
+    resetFilters
   } = useDashboardData();
 
-  /* ---- filtrage cumulatif ---- */
+  /* ---- filtrage des données mensuelles ---- */
   const monthFiltered = useMemo(() => {
     return monthlyData.filter((m) =>
       filters.year === "all" ? true : m.month.startsWith(filters.year)
     );
   }, [monthlyData, filters.year]);
 
+  /* ---- filtrage des régions ---- */
   const regionFiltered = useMemo(() => {
     return regions.filter((r) => {
       if (filters.state === "all") return true;
@@ -69,6 +79,7 @@ const BusinessOverview: React.FC = () => {
     });
   }, [regions, filters.state]);
 
+  /* ---- filtrage des catégories ---- */
   const categoryFiltered = useMemo(() => {
     return categories.filter((c) => {
       if (filters.category === "all") return true;
@@ -76,107 +87,72 @@ const BusinessOverview: React.FC = () => {
     });
   }, [categories, filters.category]);
 
-  /* ---- Obtenir les années disponibles en fonction des filtres ---- */
+  /* ---- Obtenir les années disponibles pour le filtre ---- */
   const availableYears = useMemo(() => {
     if (!monthlyData || monthlyData.length === 0) return [];
     
     const uniqueYears = new Set<string>();
     
-    // Parcourir les données mensuelles pour trouver les années disponibles
-    for (const month of monthlyData) {
-      // Extraire l'année du mois (format: "YYYY-MM")
+    // Parcourir les données mensuelles pour trouver toutes les années uniques
+    monthlyData.forEach(month => {
       const year = month.month.split('-')[0];
-      if (!year) continue;
-      
-      // Ajouter l'année au Set si elle correspond aux filtres actuels
-      if ((filters.state === 'all' || regionFiltered.length > 0) && 
-          (filters.category === 'all' || categoryFiltered.length > 0)) {
+      if (year) {
         uniqueYears.add(year);
       }
-    }
+    });
     
     return Array.from(uniqueYears).sort();
-  }, [monthlyData, filters.state, filters.category, regionFiltered, categoryFiltered]);
+  }, [monthlyData]);
 
-  /* ---- Obtenir les régions disponibles en fonction des filtres ---- */
+  /* ---- Obtenir les régions disponibles pour le filtre ---- */
   const availableRegions = useMemo(() => {
     if (!regions || regions.length === 0) return [];
     
     const uniqueRegions = new Set<string>();
     
-    // Pour chaque région, vérifier si elle correspond aux filtres
-    for (const region of regions) {
-      if (!region.name) continue;
-      
-      // Si un filtre d'année est appliqué, vérifier si cette région a des données pour cette année
-      if (filters.year !== 'all') {
-        const hasData = monthlyData.some(month => 
-          month.month.startsWith(filters.year) && 
-          regionFiltered.some(r => r.name === region.name)
-        );
-        if (!hasData) continue;
+    // Parcourir toutes les régions pour obtenir leurs noms uniques
+    regions.forEach(region => {
+      if (region.name) {
+        uniqueRegions.add(region.name.toLowerCase());
       }
-      
-      // Si un filtre de catégorie est appliqué, vérifier si cette région a des données pour cette catégorie
-      if (filters.category !== 'all') {
-        // Vérifier si cette région a des données pour la catégorie sélectionnée
-        const hasCategory = regionFiltered.some(r => 
-          r.name === region.name && 
-          categoryFiltered.some(c => c.name.toLowerCase() === filters.category)
-        );
-        
-        if (!hasCategory) continue;
-      }
-      
-      // Ajouter la région au Set
-      uniqueRegions.add(region.name.toLowerCase());
-      
-      // Limiter le nombre de régions pour des raisons de performance
-      if (uniqueRegions.size >= MAX_FILTER_OPTIONS) break;
-    }
+      // Limiter le nombre de régions pour des raisons de performance (si nécessaire, mais on veut toutes les afficher)
+      // if (uniqueRegions.size >= MAX_FILTER_OPTIONS) return; // Commenté pour afficher toutes les régions
+    });
     
     return Array.from(uniqueRegions).sort();
-  }, [regions, monthlyData, filters.year, filters.category, regionFiltered, categoryFiltered]);
+  }, [regions]);
 
-  /* ---- Obtenir les catégories disponibles en fonction des filtres ---- */
+  /* ---- Obtenir les catégories disponibles pour le filtre ---- */
   const availableCategories = useMemo(() => {
     if (!categories || categories.length === 0) return [];
     
+    // Toujours afficher toutes les catégories dans la liste déroulante
+    // mais on peut filtrer selon l'année sélectionnée
     const uniqueCategories = new Set<string>();
     
-    // Pour chaque catégorie, vérifier si elle correspond aux filtres
-    for (const category of categories) {
-      if (!category.name) continue;
+    categories.forEach(category => {
+      if (!category.name) return;
       
-      // Si un filtre d'année est appliqué, vérifier si cette catégorie a des données pour cette année
+      // Vérifier si cette catégorie a des données pour l'année sélectionnée
+      let shouldInclude = true;
+      
       if (filters.year !== 'all') {
-        const hasData = monthlyData.some(month => 
-          month.month.startsWith(filters.year) && 
-          categoryFiltered.some(c => c.name === category.name)
+        const hasYearData = monthlyData.some(month => 
+          month.month.startsWith(filters.year)
         );
-        if (!hasData) continue;
+        if (!hasYearData) shouldInclude = false;
       }
       
-      // Si un filtre de région est appliqué, vérifier si cette catégorie a des données pour cette région
-      if (filters.state !== 'all') {
-        // Vérifier si cette catégorie a des données pour la région sélectionnée
-        const hasRegion = categoryFiltered.some(c => 
-          c.name === category.name && 
-          regionFiltered.some(r => r.name.toLowerCase() === filters.state)
-        );
-        
-        if (!hasRegion) continue;
+      if (shouldInclude) {
+        uniqueCategories.add(category.name.toLowerCase());
       }
-      
-      // Ajouter la catégorie au Set
-      uniqueCategories.add(category.name.toLowerCase());
       
       // Limiter le nombre de catégories pour des raisons de performance
-      if (uniqueCategories.size >= MAX_FILTER_OPTIONS) break;
-    }
+      if (uniqueCategories.size >= MAX_FILTER_OPTIONS) return;
+    });
     
     return Array.from(uniqueCategories).sort();
-  }, [categories, monthlyData, filters.year, filters.state, categoryFiltered, regionFiltered]);
+  }, [categories, monthlyData, filters.year]);
 
   /* ---- Vérifier si les filtres sélectionnés sont valides ---- */
   const isCategoryAvailable = useMemo(() => {
@@ -217,6 +193,18 @@ const BusinessOverview: React.FC = () => {
   const localKpis = useMemo(() => {
     const totOrders  = categoryFiltered.reduce((s, c) => s + c.orders,   0);
     const totRevenue = categoryFiltered.reduce((s, c) => s + c.revenue, 0);
+    
+    // Calculer la note client moyenne à partir des catégories filtrées
+    const validRatings = categoryFiltered.filter(c => typeof c.averageRating === 'number' && !isNaN(c.averageRating));
+    const avgRating = validRatings.length > 0 
+      ? validRatings.reduce((sum, c) => sum + c.averageRating, 0) / validRatings.length 
+      : kpis.averageCustomerRating;
+    
+    // Calculer le délai moyen de livraison à partir des catégories filtrées
+    const validDeliveryTimes = categoryFiltered.filter(c => typeof c.averageDeliveryTime === 'number' && !isNaN(c.averageDeliveryTime));
+    const avgDeliveryTime = validDeliveryTimes.length > 0
+      ? validDeliveryTimes.reduce((sum, c) => sum + c.averageDeliveryTime, 0) / validDeliveryTimes.length
+      : kpis.averageDeliveryTime;
 
     return {
       ...kpis,
@@ -224,17 +212,20 @@ const BusinessOverview: React.FC = () => {
       totalRevenue:       totRevenue || kpis.totalRevenue,
       averageProductPrice:
         totOrders > 0 ? +(totRevenue / totOrders).toFixed(2) : kpis.averageProductPrice,
+      averageCustomerRating: isNaN(avgRating) ? kpis.averageCustomerRating : avgRating,
+      averageDeliveryTime: isNaN(avgDeliveryTime) ? kpis.averageDeliveryTime : avgDeliveryTime
     };
   }, [categoryFiltered, kpis]);
 
   /* ---- options des select ---- */
-  const filterOptions = [
+  const filterOptions = useMemo(() => [
     {
       name: "Année",
       options: [
         { value: "all", label: "Toutes" },
+        // Utiliser toutes les années de meta.years
         ...meta.years
-          .filter(y => availableYears.includes(String(y)))
+          // .filter(y => availableYears.includes(String(y))) // Supprimer ce filtre pour toujours afficher toutes les années de meta
           .map((y) => ({ value: String(y), label: String(y) })),
       ],
       value: filters.year,
@@ -244,8 +235,9 @@ const BusinessOverview: React.FC = () => {
       name: "Région",
       options: [
         { value: "all", label: "Toutes" },
+        // Utiliser toutes les régions de meta.states
         ...meta.states
-          .filter(s => availableRegions.includes(s.toLowerCase()))
+          // .filter(s => availableRegions.includes(s.toLowerCase())) // Supprimer ce filtre pour toujours afficher toutes les régions de meta
           .map((s) => ({ value: s.toLowerCase(), label: s })),
       ],
       value: filters.state,
@@ -255,8 +247,9 @@ const BusinessOverview: React.FC = () => {
       name: "Catégorie",
       options: [
         { value: "all", label: "Toutes" },
+        // Utiliser toutes les catégories de meta au lieu de filtrer par availableCategories
+        // pour que toutes les catégories restent visibles dans la liste déroulante
         ...meta.categories
-          .filter(c => availableCategories.includes(c.toLowerCase()))
           .map((c) => ({ 
             value: c.toLowerCase(), 
             label: formatCategoryName(c) 
@@ -265,7 +258,7 @@ const BusinessOverview: React.FC = () => {
       value: filters.category,
       onChange: (value: string) => setFilters({ category: value }),
     },
-  ];
+  ], [meta, availableYears, availableRegions, filters, setFilters]);
 
   /* ---- loading / erreur ---- */
   if (isLoading)
@@ -282,22 +275,13 @@ const BusinessOverview: React.FC = () => {
       </DashboardLayout>
     );
 
-  /* ---- fonction pour réinitialiser tous les filtres ---- */
-  const resetAllFilters = () => {
-    setFilters({
-      year: "all",
-      state: "all",
-      category: "all"
-    });
-  };
-
   /* ---------------------------------------------------------------------- */
   /*  RENDER                                                                */
   /* ---------------------------------------------------------------------- */
   return (
     <DashboardLayout title="Vue globale du business">
       {/* Filtres ----------------------------------------------------------- */}
-      <FilterSection filters={filterOptions} onReset={resetAllFilters} />
+      <FilterSection filters={filterOptions} onReset={resetFilters} />
 
       {/* KPI --------------------------------------------------------------- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -308,7 +292,7 @@ const BusinessOverview: React.FC = () => {
         />
         <KpiCard
           title="Chiffre d'affaires total"
-          value={`${fmt(localKpis.totalRevenue)} €`}
+          value={`R$ ${fmtCurrency(localKpis.totalRevenue)}`}
           icon={<DollarSign size={20} />}
         />
         <KpiCard

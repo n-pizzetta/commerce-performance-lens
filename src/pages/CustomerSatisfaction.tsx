@@ -6,7 +6,7 @@ import BarChart from '@/components/charts/BarChart';
 import ScatterPlot from '@/components/charts/ScatterPlot';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Star, Clock, AlertCircle } from 'lucide-react';
+import { Star, Clock, AlertCircle, ThumbsDown, MapPinX } from 'lucide-react';
 import { useDashboardData } from '@/contexts/DataContext';
 import Spinner from '@/components/ui/Spinner';
 import ErrorBanner from '@/components/ui/ErrorBanner';
@@ -452,22 +452,24 @@ const CustomerSatisfaction: React.FC = () => {
               title="Délai moyen livraison"
               value={hasProducts ? formatSafeValue(filteredKpis.averageDeliveryTime, n => `${n.toFixed(1)} jours`, "N/A") : "N/A"}
               trend={{ direction: 'down', value: '-0.3j vs last month' }}
-              icon={<Clock size={18} />}
+              icon={<Clock size={20} />}
             />
             <KpiCard
               title="Livraisons en retard"
               value={hasProducts ? formatSafeValue(filteredKpis.percentLateDeliveries, n => `${n.toFixed(1)}%`, "0%") : "N/A"}
               trend={{ direction: 'down', value: '-2.1% vs last month' }}
+              icon={<MapPinX size={20} />}
             />
             <KpiCard
               title="Note moyenne"
               value={hasRatedProducts ? formatSafeValue(filteredKpis.averageCustomerRating, n => `${n.toFixed(1)}/5`, "N/A") : "N/A"}
               trend={{ direction: 'up', value: '+0.2 vs last month' }}
-              icon={<Star size={18} />}
+              icon={<Star size={20} />}
             />
             <KpiCard
               title="Avis négatifs"
               value={hasRatedProducts ? formatNumber(filteredKpis.negativeReviews) : "N/A"}
+              icon={<ThumbsDown size={20} />}
               trend={{ direction: 'down', value: '-5% vs last month' }}
               description="Notes ≤ 2"
             />
