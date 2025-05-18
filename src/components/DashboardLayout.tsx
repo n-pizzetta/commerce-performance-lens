@@ -2,6 +2,7 @@ import React from 'react';
 import DashboardNav from './DashboardNav';
 import { ChartBar, Star, BarChart } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import ChatbotUI from './ai/ChatbotUI';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -63,6 +64,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           <span className="text-xs">Dashboard développé par <span className="font-bold">Gran🍪Lab</span></span>
         </div>
       </footer>
+
+      {/* Intégration du Chatbot IA */}
+      <ChatbotUI />
     </div>
   );
 };

@@ -38,7 +38,7 @@ const ScatterPlot: React.FC<ScatterPlotProps> = ({
       // Récupérer les données du point
       const data = payload[0].payload;
       
-      // N'afficher que les trois propriétés importantes
+      // Propriétés à afficher, avec le nom du produit en premier
       const propertiesToShow = ['price', 'rating', 'shippingCost'];
       
       return (
@@ -51,6 +51,20 @@ const ScatterPlot: React.FC<ScatterPlotProps> = ({
           fontSize: '13px',
           color: '#333' // Couleur de texte foncée pour assurer la visibilité sur fond blanc
         }}>
+          {/* Afficher le nom du produit en premier et en gras */}
+          {data.name && (
+            <p style={{ 
+              margin: '0 0 8px 0', 
+              fontWeight: 'bold', 
+              borderBottom: '1px solid #eee',
+              paddingBottom: '4px',
+              fontSize: '14px',
+              color: '#012169' // Couleur bagunca-navy
+            }}>
+              {data.name}
+            </p>
+          )}
+          
           {propertiesToShow.map((key) => (
             data[key] !== undefined && (
               <p key={key} style={{ margin: '2px 0', color: '#333' }}>
