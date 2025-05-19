@@ -8,6 +8,12 @@ Dashboard analytique moderne pour La Bagunça, permettant de visualiser et d'ana
 
 **[Accéder au dashboard en ligne](https://precious-blini-54736a.netlify.app/)**
 
+Autrement, pour un démarrage en local :
+
+1. Installez les dépendances : `npm install`
+2. Lancez le server : `npm run dev`
+3. Ouvrez : http://localhost:8080/
+
 ## ✨ Fonctionnalités
 
 - **Vue globale du business** : Chiffre d'affaires, commandes, performances par catégorie et région
