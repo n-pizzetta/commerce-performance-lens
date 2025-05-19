@@ -87,11 +87,14 @@ const ScatterPlot: React.FC<ScatterPlotProps> = ({
           dataKey={xAxisDataKey} 
           name={xAxisDataKey} 
           type="number"
+          label={xAxisDataKey === 'deliveryTime' ? { value: 'Délai', position: 'insideBottom', offset: -5 } : undefined}
         />
         <YAxis 
           dataKey={yAxisDataKey} 
           name={yAxisDataKey} 
           type="number"
+          domain={yAxisDataKey === 'rating' ? [1, 5] : undefined}
+          label={yAxisDataKey === 'rating' ? { value: 'Note', angle: -90, position: 'insideLeft', offset: 10 } : undefined}
         />
         {zAxisDataKey && (
           <ZAxis 
@@ -104,7 +107,6 @@ const ScatterPlot: React.FC<ScatterPlotProps> = ({
           content={<CustomTooltip />}
           cursor={{ strokeDasharray: '3 3' }}
         />
-        <Legend />
         <Scatter 
           name={name} 
           data={data} 

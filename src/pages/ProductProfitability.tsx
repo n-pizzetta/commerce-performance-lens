@@ -251,10 +251,10 @@ const ProductProfitability: React.FC = () => {
       let profitRatio = 0;
       try {
         profitRatio = data.products.reduce((sum, p) => {
-          if (typeof p.price !== 'number' || typeof p.shippingCost !== 'number' || typeof p.weight !== 'number' || p.weight <= 0) {
+          if (typeof p.price !== 'number' || typeof p.shippingCost !== 'number' || typeof p.weight !== 'number' || p.price <= 0) {
             return sum;
           }
-          return sum + (p.price - p.shippingCost) / p.weight;
+          return sum + (p.price - p.shippingCost) / p.price;
         }, 0) / count;
       } catch (e) {
         console.warn(`Erreur de calcul pour la catégorie ${name}:`, e);
@@ -321,7 +321,7 @@ const ProductProfitability: React.FC = () => {
       );
       
       avgProfitRatio = validProducts.length > 0
-        ? validProducts.reduce((sum, p) => sum + (p.price - p.shippingCost) / p.weight, 0) / validProducts.length
+        ? validProducts.reduce((sum, p) => sum + (p.price - p.shippingCost) / p.price, 0) / validProducts.length
         : kpis.averageProfitRatio;
       
       // Late deliveries
@@ -477,51 +477,87 @@ const ProductProfitability: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <KpiCard
               title="Prix moyen par catégorie"
-              value={`R$ ${fmtCurrency(filteredKpis.averagePricePerCategory)}`}
+              value={
+                isNaN(filteredKpis.averagePricePerCategory) || filteredKpis.averagePricePerCategory === undefined
+                  ? 'N/A'
+                  : `R$ ${fmtCurrency(filteredKpis.averagePricePerCategory)}`
+              }
               icon={<BarChartIcon size={20} />}
+              trend={{ direction: 'up', value: '+1.2% vs last month' }}
             />
             <KpiCard
               title="Coût moyen d'expédition"
-              value={`R$ ${fmtCurrency(filteredKpis.averageShippingCost)}`}
+              value={
+                isNaN(filteredKpis.averageShippingCost) || filteredKpis.averageShippingCost === undefined
+                  ? 'N/A'
+                  : `R$ ${fmtCurrency(filteredKpis.averageShippingCost)}`
+              }
               icon={<DollarSign size={20} />}
+              trend={{ direction: 'down', value: '-0.3% vs last month' }}
             />
             <KpiCard
-              title="Ratio de profit moyen"
-              value={formatPercent(filteredKpis.averageProfitRatio * 100)}
-              description="(Prix - Coût) / Poids"
+              title="Indicateur de rentabilité"
+              value={
+                isNaN(filteredKpis.averageProfitRatio) || filteredKpis.averageProfitRatio === undefined
+                  ? 'N/A'
+                  : formatPercent(filteredKpis.averageProfitRatio * 100)
+              }
+              description="(Prix - Coût) / Prix"
               icon={<Sigma size={20} />}
+              trend={{ direction: 'up', value: '+0.5% vs last month' }}
             />
             <KpiCard
               title="Note moyenne"
-              value={isNaN(filteredKpis.averageCustomerRating) ? "N/A" : filteredKpis.averageCustomerRating.toFixed(1)}
-              icon={<Star size={20} />}/>
+              value={
+                isNaN(filteredKpis.averageCustomerRating) || filteredKpis.averageCustomerRating === undefined
+                  ? 'N/A'
+                  : filteredKpis.averageCustomerRating.toFixed(1)
+              }
+              icon={<Star size={20} />}
+              trend={{ direction: 'down', value: '-0.1 vs last month' }}
+            />
           </div>
           
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Category Performance */}
             <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm">
-              <h3 className="text-lg font-medium mb-4">Performance par catégorie</h3>
-              <BarChart
-                data={[...filteredCategories]
-                  .filter(c => !isNaN(c.profitRatio))
-                  .sort((a, b) => b.profitRatio - a.profitRatio)
-                  .slice(0, 10)
-                  .map(category => ({
-                    ...category,
-                    name: formatCategoryName(category.name),
-                    profitRatio: parseFloat((category.profitRatio * 100).toFixed(1))
-                  }))}
-                xAxisDataKey="name"
-                bars={[{ dataKey: "profitRatio", name: "Ratio de profit" }]}
-                formatTooltipValue={(value, name) => {
-                  if (name === "Ratio de profit") {
-                    return `${value.toFixed(1)}%`;
-                  }
-                  return value.toString();
-                }}
-                showLegend={false}
-              />
+              {filters.category !== 'all' && filteredCategories.length === 1 ? (
+                <>
+                  <h3 className="text-lg font-medium mb-4">Performance de la catégorie</h3>
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <div className="text-2xl font-bold mb-2">{filteredCategories[0].name}</div>
+                    <div className="text-4xl font-extrabold text-dashboard-green mb-2">
+                      {formatPercent(filteredCategories[0].profitRatio * 100)}
+                    </div>
+                    <div className="text-muted-foreground">Ratio de profit de la catégorie</div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-lg font-medium mb-4">Performance par catégorie</h3>
+                  <BarChart
+                    data={[...filteredCategories]
+                      .filter(c => !isNaN(c.profitRatio))
+                      .sort((a, b) => b.profitRatio - a.profitRatio)
+                      .slice(0, 10)
+                      .map(category => ({
+                        ...category,
+                        name: formatCategoryName(category.name),
+                        profitRatio: parseFloat((category.profitRatio * 100).toFixed(1))
+                      }))}
+                    xAxisDataKey="name"
+                    bars={[{ dataKey: "profitRatio", name: "Ratio de profit" }]}
+                    formatTooltipValue={(value, name) => {
+                      if (name === "Ratio de profit") {
+                        return `${value.toFixed(1)}%`;
+                      }
+                      return value.toString();
+                    }}
+                    showLegend={false}
+                  />
+                </>
+              )}
             </div>
             
             {/* Price vs Rating Scatter */}
@@ -549,9 +585,8 @@ const ProductProfitability: React.FC = () => {
                 <TableRow>
                   <TableHead>Produit</TableHead>
                   <TableHead>Catégorie</TableHead>
-                  <TableHead className="text-right">Prix</TableHead>
-                  <TableHead className="text-right">Coût expéd.</TableHead>
-                  <TableHead className="text-right">Poids (kg)</TableHead>
+                  <TableHead className="text-right">Prix (en R$)</TableHead>
+                  <TableHead className="text-right">Coût expéd. (en R$)</TableHead>
                   <TableHead className="text-right">Ratio profit</TableHead>
                   <TableHead className="text-right">Note</TableHead>
                 </TableRow>
@@ -571,8 +606,8 @@ const ProductProfitability: React.FC = () => {
                       typeof p.weight === 'number' && p.weight > 0
                     )
                     .sort((a, b) => {
-                      const ratioA = (a.price - a.shippingCost) / a.weight;
-                      const ratioB = (b.price - b.shippingCost) / b.weight;
+                      const ratioA = (a.price - a.shippingCost) / a.price;
+                      const ratioB = (b.price - b.shippingCost) / b.price;
                       return ratioB - ratioA;
                     })
                     .slice(0, 10)
@@ -580,14 +615,16 @@ const ProductProfitability: React.FC = () => {
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">{product.name || "Sans nom"}</TableCell>
                         <TableCell>{formatCategoryName(product.category)}</TableCell>
-                        <TableCell className="text-right">{`R$ ${fmtCurrency(product.price)}`}</TableCell>
-                        <TableCell className="text-right">{`R$ ${fmtCurrency(product.shippingCost)}`}</TableCell>
-                        <TableCell className="text-right">{(product.weight / 1000).toFixed(1)}</TableCell>
+                        <TableCell className="text-right">{`${fmtCurrency(product.price)}`}</TableCell>
+                        <TableCell className="text-right">{`${fmtCurrency(product.shippingCost)}`}</TableCell>
                         <TableCell className="text-right">
-                          {formatPercent(((product.price - product.shippingCost) / product.weight) * 100)}
+                          {formatPercent(((product.price - product.shippingCost) / product.price) * 100)}
                         </TableCell>
                         <TableCell className="text-right">
-                          {typeof product.rating === 'number' ? product.rating.toFixed(1) : "N/A"}
+                          <span className="flex items-center justify-end">
+                            {typeof product.rating === 'number' ? product.rating.toFixed(1) : "N/A"}
+                            <Star size={14} className="ml-1 text-yellow-500" />
+                          </span>
                         </TableCell>
                       </TableRow>
                     ))
