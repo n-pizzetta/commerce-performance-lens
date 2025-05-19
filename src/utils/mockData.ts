@@ -83,6 +83,9 @@ export interface Category {
   averageRating: number;
   averageDeliveryTime: number;
   profitRatio: number;
+  latitude?: number;
+  longitude?: number;
+  product_category_name_english?: string;
 }
 
 export interface Region {
@@ -110,6 +113,8 @@ export interface EnrichedProduct {
   estimatedDeliveryTime: number;
   region: string;
   orders?: number;
+  orderDate?: string; // Added for filtering by year
+  profitRatio?: number; // Added from profitability.products source
 }
 export interface FactsRow {
   ym:       string;   // "2024-03"

@@ -153,6 +153,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           averageProductPrice:
             kpiOrders ? +(kpiRevenue / kpiOrders).toFixed(2) : base.kpis.averageProductPrice,
         },
+        topCategories: raw.topCategories || []
       };
     } catch (err) {
       console.error("Erreur lors du traitement des données:", err);

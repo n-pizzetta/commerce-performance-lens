@@ -25,10 +25,10 @@ const KpiCard: React.FC<KpiCardProps> = ({
       <div className="flex justify-between items-start mb-2">
         <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
         {icon && <div className="text-bagunca-navy dark:text-bagunca-yellow">{icon}</div>}
-      </div>
+        </div>
       <div className="flex items-baseline gap-2">
         <p className="text-2xl font-bold text-bagunca-navy dark:text-white">{value}</p>
-        {trend && (
+          {trend && (
           <span
             className={cn(
               "text-xs font-medium flex items-center",
@@ -40,10 +40,10 @@ const KpiCard: React.FC<KpiCardProps> = ({
             ) : (
               <ArrowDown size={12} className="mr-1" />
             )}
-            {trend.value}
+              {trend.value}
           </span>
-        )}
-      </div>
+          )}
+        </div>
       {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
     </div>
   );

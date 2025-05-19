@@ -34,7 +34,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <img 
-              src="/shirt-labagunca.svg" 
+              src="/logo-labagunca.png" 
               alt="La Bagunça Logo" 
               className="w-8 h-8" 
             />
