@@ -13,6 +13,7 @@ interface Filters {
   year: string;        // "all" ou "2024"
   state: string;       // "all" ou "sp"
   category: string;    // "all" ou "electronics"
+  selectedProductId?: number; // ID du produit sélectionné (optionnel)
 }
 
 type Ctx = DashboardData & {
@@ -21,6 +22,7 @@ type Ctx = DashboardData & {
   filters: Filters;
   setFilters: (p: Partial<Filters>) => void;
   resetFilters: () => void;
+  raw: any; // Données brutes du JSON
 };
 
 const DataContext = createContext<Ctx | null>(null);
@@ -169,8 +171,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     error,
     filters,
     setFilters,
-    resetFilters
-  }), [data, isLoading, error, filters, setFilters, resetFilters]);
+    resetFilters,
+    raw  // Ajouter les données brutes au contexte
+  }), [data, isLoading, error, filters, setFilters, resetFilters, raw]);
 
   return (
     <DataContext.Provider value={contextValue}>

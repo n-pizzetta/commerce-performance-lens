@@ -3,7 +3,8 @@ import DashboardLayout from '@/components/DashboardLayout';
 import KpiCard from '@/components/KpiCard';
 import FilterSection from '@/components/FilterSection';
 import BarChart from '@/components/charts/BarChart';
-import ScatterPlot from '@/components/charts/ScatterPlot';
+// import ScatterPlot from '@/components/charts/ScatterPlot';
+import { RecommendationCard } from '@/components/RecommendationCard';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDashboardData } from '@/contexts/DataContext';
@@ -11,12 +12,62 @@ import { BarChart as BarChartIcon, Star, DollarSign, ArrowRight, AlertCircle, Si
 import Spinner from '@/components/ui/Spinner';
 import ErrorBanner from '@/components/ui/ErrorBanner';
 
+// Utilities for product recommendations
+const getProductRecommendation = (productId: string, rawData: any): string | null => {
+  if (!rawData?.reviews?.resume_product || productId === 'all') {
+    return null;
+  }
+  
+  const recommendation = rawData.reviews.resume_product.find(
+    (prod: any) => prod.product_id === productId
+  );
+  
+  return recommendation?.résume_all_prod || null;
+};
+
+const getProductReview = (productId: string, rawData: any): string | null => {
+  if (!rawData?.reviews?.resume_product || productId === 'all') {
+    return null;
+  }
+  
+  const product = rawData.reviews.resume_product.find(
+    (prod: any) => prod.product_id === productId
+  );
+  
+  return product?.reviews || null;
+};
+
+const getProductName = (productId: string, products: any[]): string => {
+  if (productId === 'all' || !products || products.length === 0) {
+    return '';
+  }
+  
+  const product = products.find(p => p.id === productId || p.product_id === productId);
+  return product?.name || product?.product_name || `Produit ${productId}`;
+};
+
+const getCategoryRecommendation = (category: string, rawData: any): string | null => {
+  if (!rawData?.reviews?.resume_category || category === 'all') {
+    return null;
+  }
+  
+  const categoryData = rawData.reviews.resume_category.find(
+    (cat: any) => cat.product_category_name_english?.toLowerCase() === category.toLowerCase()
+  );
+  
+  return categoryData?.résume_all_catego || null;
+};
+
 // Nombre maximum d'options de filtres à afficher
 const MAX_FILTER_OPTIONS = 50;
 
 const ProductProfitability: React.FC = () => {
   // État local pour le filtre de produit
   const [productFilter, setProductFilter] = useState<string>('all');
+  
+  // États pour les recommandations
+  const [categoryRecommendation, setCategoryRecommendation] = useState<string>('');
+  const [productRecommendation, setProductRecommendation] = useState<{ review: string; recommendation: string }>({ review: '', recommendation: '' });
   
   // Get data from context
   const {
@@ -27,12 +78,34 @@ const ProductProfitability: React.FC = () => {
     isLoading,
     error,
     filters,
-    setFilters
+    setFilters,
+    raw
   } = useDashboardData();
   
   // Fonction pour formater le nom d'une catégorie pour affichage
   const formatCategoryName = useCallback((name: string | undefined): string => {
     if (!name) return "Catégorie non spécifiée";
+    
+    // Correspondances pour certaines catégories spécifiques
+    const categoryMappings: Record<string, string> = {
+      'bed_bath_table': 'Maison & Literie',
+      'health_beauty': 'Santé & Beauté',
+      'sports_leisure': 'Sports & Loisirs',
+      'computers_accessories': 'Informatique & Tech',
+      'furniture_decor': 'Meubles & Décoration',
+      'watches_gifts': 'Montres & Cadeaux',
+      'cool_stuff': 'Trucs Cool',
+      'housewares': 'Articles Ménagers',
+      'auto': 'Automobile',
+      'garden_tools': 'Jardin & Outils',
+      'toys': 'Jouets',
+      'agro_industry_and_commerce': 'Agro-Industrie'
+    };
+    
+    // Vérifier si on a une correspondance directe
+    if (categoryMappings[name.toLowerCase()]) {
+      return categoryMappings[name.toLowerCase()];
+    }
     
     // Convertir les underscores en espaces et mettre en majuscule les premières lettres
     return name
@@ -520,9 +593,32 @@ const ProductProfitability: React.FC = () => {
       
           {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Category Performance */}
+            {/* Product/Category Performance */}
             <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm">
-              {filters.category !== 'all' && filteredCategories.length === 1 ? (
+              {productFilter !== 'all' ? (
+                // Affichage des métriques pour un produit sélectionné
+                <>
+                  <h3 className="text-lg font-medium mb-4">Performance du produit</h3>
+                  <div className="flex flex-col items-center justify-center h-full">
+                    {filteredProducts.length > 0 && (
+                      <>
+                        <div className="text-2xl font-bold mb-2">{filteredProducts[0].name}</div>
+                        <div className="text-4xl font-extrabold text-dashboard-green mb-2">
+                          {formatPercent(((filteredProducts[0].price - filteredProducts[0].shippingCost) / filteredProducts[0].price) * 100)}
+                        </div>
+                        <div className="text-muted-foreground">Ratio de profit du produit</div>
+                        <div className="flex items-center mt-4 space-x-2">
+                          <Star size={18} className="text-yellow-500" />
+                          <span className="text-lg font-medium">
+                            {typeof filteredProducts[0].rating === 'number' ? filteredProducts[0].rating.toFixed(1) : "N/A"}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </>
+              ) : filters.category !== 'all' && filteredCategories.length === 1 ? (
+                // Affichage des métriques pour une catégorie sélectionnée
                 <>
                   <h3 className="text-lg font-medium mb-4">Performance de la catégorie</h3>
                   <div className="flex flex-col items-center justify-center h-full">
@@ -531,12 +627,13 @@ const ProductProfitability: React.FC = () => {
                       {formatPercent(filteredCategories[0].profitRatio * 100)}
                     </div>
                     <div className="text-muted-foreground">Ratio de profit de la catégorie</div>
-              </div>
+                  </div>
                 </>
               ) : (
+                // Graphique pour toutes les catégories
                 <>
                   <h3 className="text-lg font-medium mb-4">Performance par catégorie</h3>
-            <BarChart
+                  <BarChart
                     data={[...filteredCategories]
                       .filter(c => !isNaN(c.profitRatio))
                       .sort((a, b) => b.profitRatio - a.profitRatio)
@@ -546,7 +643,7 @@ const ProductProfitability: React.FC = () => {
                         name: formatCategoryName(category.name),
                         profitRatio: parseFloat((category.profitRatio * 100).toFixed(1))
                       }))}
-              xAxisDataKey="name"
+                    xAxisDataKey="name"
                     bars={[{ dataKey: "profitRatio", name: "Ratio de profit" }]}
                     formatTooltipValue={(value, name) => {
                       if (name === "Ratio de profit") {
@@ -560,20 +657,32 @@ const ProductProfitability: React.FC = () => {
               )}
             </div>
             
-            {/* Price vs Rating Scatter */}
+            {/* Recommandations */}
             <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm">
-              <h3 className="text-lg font-medium mb-4">Prix vs Note client</h3>
-            <ScatterPlot
-                data={filteredProducts.filter(p => 
-                  typeof p.price === 'number' && !isNaN(p.price) &&
-                  typeof p.rating === 'number' && !isNaN(p.rating) &&
-                  typeof p.shippingCost === 'number' && !isNaN(p.shippingCost)
-                )}
-              xAxisDataKey="price"
-                yAxisDataKey="rating"
-                zAxisDataKey="shippingCost"
-              name="Produits"
-            />
+              <h3 className="text-lg font-medium mb-4">Recommandations</h3>
+              
+              {productFilter !== 'all' ? (
+                <RecommendationCard
+                  title="Amélioration produit"
+                  recommendation={getProductRecommendation(productFilter, raw)}
+                  review={getProductReview(productFilter, raw)}
+                  productName={getProductName(productFilter, filteredProducts)}
+                />
+              ) : filters.category !== 'all' ? (
+                <RecommendationCard
+                  title="Amélioration catégorie"
+                  recommendation={getCategoryRecommendation(filters.category, raw)}
+                  categoryName={formatCategoryName(filters.category)}
+                />
+              ) : (
+                // Message par défaut
+                <div className="flex flex-col items-center justify-center py-8">
+                  <AlertCircle size={48} className="text-gray-400 mb-4" />
+                  <p className="text-center text-gray-600 dark:text-gray-400">
+                    Sélectionnez une catégorie ou un produit spécifique pour voir des recommandations personnalisées basées sur les commentaires clients.
+                  </p>
+                </div>
+              )}
             </div>
       </div>
       
