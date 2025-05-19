@@ -81,6 +81,12 @@ interface DashboardJson {
       profitRatio: number;
     }>;
   };
+
+  facts?: Array<{
+    product_id: string;
+    orders: number;
+    // autres champs potentiels ignorés ici
+  }>;
 }
 
 /* -------- dashboard consumable par l'app ------------------------------- */
@@ -175,8 +181,8 @@ export function generateDashboardFromJson(
         deliveryTime: p.deliveryTime || 0,
         estimatedDeliveryTime: p.estimatedDeliveryTime || 0,
         region: region,
-        // Conserver les propriétés d'origine si nécessaire
-        product_id: p.product_id
+        product_id: p.product_id,
+        orders: p.orders || 0 // Utilise la valeur du JSON
       };
     }
   );

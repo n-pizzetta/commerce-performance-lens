@@ -109,6 +109,7 @@ export interface EnrichedProduct {
   deliveryTime: number;
   estimatedDeliveryTime: number;
   region: string;
+  orders?: number;
 }
 export interface FactsRow {
   ym:       string;   // "2024-03"

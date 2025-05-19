@@ -79,7 +79,7 @@ const CustomerSatisfaction: React.FC = () => {
         const product = baseFilteredProducts[i];
         if (product && product.region && product.category && 
             product.region.toLowerCase() === filters.state.toLowerCase()) {
-          uniqueCategories.add(product.category.toLowerCase());
+          uniqueCategories.add(product.category.trim().toLowerCase());
         }
       }
     } else {
@@ -87,7 +87,7 @@ const CustomerSatisfaction: React.FC = () => {
       for (let i = 0; i < baseFilteredProducts.length; i++) {
         const product = baseFilteredProducts[i];
         if (product && product.category) {
-          uniqueCategories.add(product.category.toLowerCase());
+          uniqueCategories.add(product.category.trim().toLowerCase());
         }
       }
     }
@@ -107,7 +107,7 @@ const CustomerSatisfaction: React.FC = () => {
       for (let i = 0; i < regionsToProcess; i++) {
         const product = baseFilteredProducts[i];
         if (product && product.region && product.category && 
-            product.category.toLowerCase() === filters.category.toLowerCase()) {
+            product.category.trim().toLowerCase() === filters.category.trim().toLowerCase()) {
           uniqueRegions.add(product.region.toLowerCase());
         }
         
@@ -137,7 +137,7 @@ const CustomerSatisfaction: React.FC = () => {
     // Apply category filter
     if (filters.category !== 'all') {
       filtered = filtered.filter(item => 
-        item && (item.category || '').toLowerCase() === filters.category.toLowerCase()
+        item && (item.category || '').trim().toLowerCase() === filters.category.trim().toLowerCase()
       );
     }
 
@@ -259,33 +259,35 @@ const CustomerSatisfaction: React.FC = () => {
   // Best and worst rated products - limités à 5 pour la performance
   const bestRatedProducts = useMemo(() => {
     if (!filteredProducts || filteredProducts.length === 0) return [];
-    
     // Limiter le nombre de produits à traiter
     const maxProductsToProcess = Math.min(filteredProducts.length, 100);
     const productsToProcess = filteredProducts.slice(0, maxProductsToProcess);
-    
-    const validProducts = productsToProcess.filter(p => 
+    const validProducts = productsToProcess.filter(p =>
       p && typeof p.rating === 'number' && !isNaN(p.rating)
     );
-    
+    // Tri : d'abord par note décroissante, puis par nombre de ventes décroissant
     return [...validProducts]
-      .sort((a, b) => b.rating - a.rating)
+      .sort((a, b) => {
+        if (b.rating !== a.rating) return b.rating - a.rating;
+        return (b.orders || 0) - (a.orders || 0);
+      })
       .slice(0, 5);
   }, [filteredProducts]);
 
   const worstRatedProducts = useMemo(() => {
     if (!filteredProducts || filteredProducts.length === 0) return [];
-    
     // Limiter le nombre de produits à traiter
     const maxProductsToProcess = Math.min(filteredProducts.length, 100);
     const productsToProcess = filteredProducts.slice(0, maxProductsToProcess);
-    
-    const validProducts = productsToProcess.filter(p => 
+    const validProducts = productsToProcess.filter(p =>
       p && typeof p.rating === 'number' && !isNaN(p.rating)
     );
-    
+    // Tri : d'abord par note croissante, puis par nombre de ventes décroissant
     return [...validProducts]
-      .sort((a, b) => a.rating - b.rating)
+      .sort((a, b) => {
+        if (a.rating !== b.rating) return a.rating - b.rating;
+        return (b.orders || 0) - (a.orders || 0);
+      })
       .slice(0, 5);
   }, [filteredProducts]);
 
@@ -297,12 +299,23 @@ const CustomerSatisfaction: React.FC = () => {
 
   // Memoizing distribution data to avoid recalculations on every render
   const ratingDistributionData = useMemo(() => {
-    return ratingDistribution.map(item => ({
-      rating: `${item.rating} étoile${item.rating > 1 ? 's' : ''}`,
-      count: item.count || 0,
-      percentage: ((item.count || 0) / totalReviews * 100).toFixed(1)
+    // On ne garde que les produits avec une note valide
+    const validRatings = filteredProducts.filter(p => typeof p.rating === 'number' && !isNaN(p.rating));
+    if (validRatings.length === 0) return [];
+
+    // Compter le nombre de produits pour chaque note (1 à 5)
+    const distribution: { [key: number]: number } = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    validRatings.forEach(p => {
+      const r = Math.round(p.rating);
+      if (distribution[r] !== undefined) distribution[r] += 1;
+    });
+    const total = validRatings.length;
+    return Object.entries(distribution).map(([rating, count]) => ({
+      rating: `${rating} étoile${Number(rating) > 1 ? 's' : ''}`,
+      count,
+      percentage: ((count / total) * 100).toFixed(1)
     }));
-  }, [ratingDistribution, totalReviews]);
+  }, [filteredProducts]);
 
   // Vérifier si la catégorie est disponible dans les catégories filtrées
   const isCategoryAvailable = useMemo(() => {
@@ -450,25 +463,41 @@ const CustomerSatisfaction: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <KpiCard
               title="Délai moyen livraison"
-              value={hasProducts ? formatSafeValue(filteredKpis.averageDeliveryTime, n => `${n.toFixed(1)} jours`, "N/A") : "N/A"}
+              value={
+                isNaN(filteredKpis.averageDeliveryTime) || filteredKpis.averageDeliveryTime === undefined
+                  ? 'N/A'
+                  : `${filteredKpis.averageDeliveryTime.toFixed(1)} jours`
+              }
               trend={{ direction: 'down', value: '-0.3j vs last month' }}
               icon={<Clock size={20} />}
             />
             <KpiCard
               title="Livraisons en retard"
-              value={hasProducts ? formatSafeValue(filteredKpis.percentLateDeliveries, n => `${n.toFixed(1)}%`, "0%") : "N/A"}
+              value={
+                isNaN(filteredKpis.percentLateDeliveries) || filteredKpis.percentLateDeliveries === undefined
+                  ? 'N/A'
+                  : `${filteredKpis.percentLateDeliveries.toFixed(1)}%`
+              }
               trend={{ direction: 'down', value: '-2.1% vs last month' }}
               icon={<MapPinX size={20} />}
             />
             <KpiCard
               title="Note moyenne"
-              value={hasRatedProducts ? formatSafeValue(filteredKpis.averageCustomerRating, n => `${n.toFixed(1)}/5`, "N/A") : "N/A"}
+              value={
+                isNaN(filteredKpis.averageCustomerRating) || filteredKpis.averageCustomerRating === undefined
+                  ? 'N/A'
+                  : `${filteredKpis.averageCustomerRating.toFixed(1)}/5`
+              }
               trend={{ direction: 'up', value: '+0.2 vs last month' }}
               icon={<Star size={20} />}
             />
             <KpiCard
               title="Avis négatifs"
-              value={hasRatedProducts ? formatNumber(filteredKpis.negativeReviews) : "N/A"}
+              value={
+                isNaN(filteredKpis.negativeReviews) || filteredKpis.negativeReviews === undefined
+                  ? 'N/A'
+                  : formatNumber(filteredKpis.negativeReviews)
+              }
               icon={<ThumbsDown size={20} />}
               trend={{ direction: 'down', value: '-5% vs last month' }}
               description="Notes ≤ 2"
@@ -563,6 +592,7 @@ const CustomerSatisfaction: React.FC = () => {
                         <TableHead>Catégorie</TableHead>
                         <TableHead className="text-right">Note</TableHead>
                         <TableHead className="text-right">Délai (j)</TableHead>
+                        <TableHead className="text-right">Ventes</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -584,7 +614,10 @@ const CustomerSatisfaction: React.FC = () => {
                               </span>
                             </TableCell>
                             <TableCell className="text-right">
-                              {typeof product.deliveryTime === 'number' ? product.deliveryTime : "N/A"}
+                              {typeof product.deliveryTime === 'number' ? Math.ceil(product.deliveryTime) : "N/A"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {typeof product.orders === 'number' ? Math.ceil(product.orders) : "N/A"}
                             </TableCell>
                           </TableRow>
                         ))
@@ -618,6 +651,7 @@ const CustomerSatisfaction: React.FC = () => {
                         <TableHead>Catégorie</TableHead>
                         <TableHead className="text-right">Note</TableHead>
                         <TableHead className="text-right">Délai (j)</TableHead>
+                        <TableHead className="text-right">Ventes</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -639,7 +673,10 @@ const CustomerSatisfaction: React.FC = () => {
                               </span>
                             </TableCell>
                             <TableCell className="text-right">
-                              {typeof product.deliveryTime === 'number' ? product.deliveryTime : "N/A"}
+                              {typeof product.deliveryTime === 'number' ? Math.ceil(product.deliveryTime) : "N/A"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {typeof product.orders === 'number' ? Math.ceil(product.orders) : "N/A"}
                             </TableCell>
                           </TableRow>
                         ))

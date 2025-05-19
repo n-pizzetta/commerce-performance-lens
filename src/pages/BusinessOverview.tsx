@@ -13,6 +13,7 @@ import LineChart             from "@/components/charts/LineChart";
 import Spinner               from "@/components/ui/Spinner";
 import ErrorBanner           from "@/components/ui/ErrorBanner";
 import { ShoppingCart, DollarSign, Clock, Star } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { useDashboardData }  from "@/contexts/DataContext";
 import { Category, Region, MonthlyData } from "@/utils/mockData";
@@ -61,7 +62,8 @@ const BusinessOverview: React.FC = () => {
     error,
     filters,
     setFilters,
-    resetFilters
+    resetFilters,
+    enrichedProducts
   } = useDashboardData();
 
   /* ---- filtrage des données mensuelles ---- */
@@ -289,48 +291,83 @@ const BusinessOverview: React.FC = () => {
           title="Nombre total de commandes"
           value={fmt(localKpis.totalOrders)}
           icon={<ShoppingCart size={20} />}
+          trend={{ direction: 'up', value: '+2% vs last month' }}
         />
         <KpiCard
-          title="Chiffre d'affaires total"
-          value={`R$ ${fmtCurrency(localKpis.totalRevenue)}`}
+          title="Chiffre d'affaires total (en R$)"
+          value={
+            isNaN(localKpis.totalRevenue) || localKpis.totalRevenue === undefined
+              ? 'N/A'
+              : fmtCurrency(localKpis.totalRevenue)
+          }
           icon={<DollarSign size={20} />}
+          trend={{ direction: 'up', value: '+1.8% vs last month' }}
         />
         <KpiCard
           title="Délai moyen de livraison"
           value={`${localKpis.averageDeliveryTime.toFixed(1)} j`}
           icon={<Clock size={20} />}
+          trend={{ direction: 'down', value: '-0.5j vs last month' }}
         />
         <KpiCard
           title="Note client moyenne"
           value={`${localKpis.averageCustomerRating.toFixed(1)}/5`}
           icon={<Star size={20} />}
+          trend={{ direction: 'up', value: '+0.1 vs last month' }}
         />
       </div>
 
       {/* Graphiques -------------------------------------------------------- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm">
-          <h3 className="text-lg font-medium mb-4">Top 10 Catégories par chiffre d'affaires</h3>
-          <BarChart
-            data={[...categoryFiltered]
-              .sort((a, b) => b.revenue - a.revenue)
-              .slice(0, 10)
-              .map(category => ({
-                ...category,
-                name: formatCategoryName(category.name)
-              }))}
-            xAxisDataKey="name"
-            bars={[{ dataKey: "revenue", name: "CA" }]}
-            formatTooltipValue={(value, name) => {
-              if (name === "CA") {
-                return new Intl.NumberFormat('fr-FR', { 
-                  maximumFractionDigits: 0,
-                  useGrouping: true
-                }).format(value);
-              }
-              return value.toString();
-            }}
-          />
+          <h3 className="text-lg font-medium mb-4">
+            {filters.category !== 'all' ? `Top 10 produits de la catégorie` : `Top 10 Catégories par chiffre d'affaires`}
+          </h3>
+          {filters.category !== 'all' ? (
+            <BarChart
+              data={[...enrichedProducts]
+                .filter(p => (p.category || '').toLowerCase() === filters.category.toLowerCase())
+                .sort((a, b) => b.price - a.price)
+                .slice(0, 10)
+                .map(product => ({
+                  ...product,
+                  name: product.name
+                }))}
+              xAxisDataKey="name"
+              bars={[{ dataKey: "price", name: "CA" }]}
+              formatTooltipValue={(value, name) => {
+                if (name === "CA") {
+                  return new Intl.NumberFormat('fr-FR', {
+                    maximumFractionDigits: 0,
+                    useGrouping: true
+                  }).format(value);
+                }
+                return value.toString();
+              }}
+              showLegend={false}
+            />
+          ) : (
+            <BarChart
+              data={[...categoryFiltered]
+                .sort((a, b) => b.revenue - a.revenue)
+                .slice(0, 10)
+                .map(category => ({
+                  ...category,
+                  name: formatCategoryName(category.name)
+                }))}
+              xAxisDataKey="name"
+              bars={[{ dataKey: "revenue", name: "CA" }]}
+              formatTooltipValue={(value, name) => {
+                if (name === "CA") {
+                  return new Intl.NumberFormat('fr-FR', {
+                    maximumFractionDigits: 0,
+                    useGrouping: true
+                  }).format(value);
+                }
+                return value.toString();
+              }}
+            />
+          )}
         </div>
 
         <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm">
