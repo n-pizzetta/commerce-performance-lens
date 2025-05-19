@@ -140,14 +140,14 @@ const ChatbotUI: React.FC = () => {
     <>
       {/* Bouton flottant pour ouvrir le chatbot avec animation et bulle d'aide */}
       {!isOpen && (
-        <div className="fixed bottom-4 right-4 z-50">
+        <div className="fixed bottom-4 right-4 z-[9999]">
           {/* Bulle de message proactif simplifiée */}
           {showProactiveBubble && (
-            <div className="absolute bottom-16 right-0 bg-white dark:bg-gray-900 text-bagunca-navy dark:text-white p-4 rounded-lg shadow-lg border border-bagunca-green w-64 text-sm">
+            <div className="absolute bottom-16 right-0 bg-white dark:bg-gray-900 text-bagunca-navy dark:text-white p-4 rounded-lg shadow-lg border border-bagunca-green w-64 text-sm z-[9999]">
               <div className="absolute -bottom-2 right-4 w-4 h-4 bg-white dark:bg-gray-900 border-r border-b border-bagunca-green transform rotate-45"></div>
               <div className="flex items-start gap-2">
                 <div className="relative mt-1">
-                  <img src="/shirt-labagunca.svg" alt="Logo" className="w-5 h-5" />
+                  <img src="/logo-labagunca.png" alt="Logo" className="w-12 h-6" />
                   <Sparkles size={8} className="absolute -top-1 -right-1 text-bagunca-yellow" />
                 </div>
                 <p>Posez des questions à notre IA pour analyser vos données</p>
@@ -172,12 +172,12 @@ const ChatbotUI: React.FC = () => {
 
       {/* Modal du chatbot */}
       {isOpen && (
-        <div className="fixed bottom-4 right-4 w-80 md:w-96 h-[500px] max-h-[80vh] bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-bagunca-navy overflow-hidden flex flex-col z-50">
+        <div className="fixed bottom-4 right-4 w-80 md:w-96 h-[500px] max-h-[80vh] bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-bagunca-navy overflow-hidden flex flex-col z-[9999]">
           {/* En-tête */}
           <div className="bg-bagunca-navy text-white p-3 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="relative">
-                <img src="/shirt-labagunca.svg" alt="Logo" className="w-5 h-5" />
+                <img src="/logo-labagunca.png" alt="Logo" className="w-5 h-5" />
                 <Sparkles size={10} className="absolute -top-1 -right-1 text-bagunca-yellow animate-pulse" />
               </div>
               <h3 className="text-sm font-medium">Assistant IA La Bagunça</h3>

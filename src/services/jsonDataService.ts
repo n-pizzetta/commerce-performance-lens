@@ -114,6 +114,7 @@ export interface DashboardData {
     states: string[];
     categories: string[];
   };
+  topCategories: any[];
 }
 
 /* -------- conversion JSON -> structures front -------------------------- */
@@ -169,6 +170,14 @@ export function generateDashboardFromJson(
       const region = regions.length > 0 
         ? regions[idx % regions.length].name 
         : "Région non spécifiée";
+
+      // Derive orderDate from meta years and months for filter functionality
+      const metaYears = json.overview.meta.years || [];
+      const metaMonths = json.overview.meta.months || [];
+      const yearForProduct = metaYears.length > 0 ? metaYears[idx % metaYears.length].toString() : "2023";
+      const monthForProduct = metaMonths.length > 0 ? metaMonths[idx % metaMonths.length] : "01";
+      const dayForProduct = ((idx % 28) + 1).toString().padStart(2, '0'); // Cycle days 01-28
+      const derivedOrderDate = `${yearForProduct}-${monthForProduct}-${dayForProduct}`;
       
       return {
         id: idx + 1,
@@ -181,8 +190,10 @@ export function generateDashboardFromJson(
         deliveryTime: p.deliveryTime || 0,
         estimatedDeliveryTime: p.estimatedDeliveryTime || 0,
         region: region,
-        product_id: p.product_id,
-        orders: p.orders || 0 // Utilise la valeur du JSON
+        // product_id: p.product_id, // Not currently in EnrichedProduct interface, but p has it
+        orders: 0, // p (from profitability.products) does not have 'orders'. Set to 0 or look up from facts if needed.
+        orderDate: derivedOrderDate, // Added derived orderDate
+        profitRatio: p.profitRatio || 0 // Added profitRatio from source
       };
     }
   );
@@ -227,13 +238,11 @@ export function generateDashboardFromJson(
     count: item.count
   }));
 
-  /* 7. Meta */
-  const meta = {
-    years: json.overview.meta?.years || [2024],
-    months: json.overview.meta?.months || monthlyData.map(m => m.month.split('-')[1]),
-    states: json.overview.meta?.states || regions.map(r => r.name),
-    categories: json.overview.meta?.categories || categories.map(c => c.name)
-  };
+  /* 7. Meta (directement du JSON) */
+  const meta = json.overview.meta;
+
+  /* 8. Top Categories (directement du JSON, déjà utilisé pour construire `categories` mais requis par DashboardData) */
+  const topCategories = json.overview.topCategories || [];
 
   // Logging pour débogage
   console.log("Données chargées:", {
@@ -254,5 +263,6 @@ export function generateDashboardFromJson(
     kpis,
     ratingDistribution,
     meta,
+    topCategories,
   };
 }

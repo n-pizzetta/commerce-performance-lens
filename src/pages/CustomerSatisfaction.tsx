@@ -53,7 +53,7 @@ const CustomerSatisfaction: React.FC = () => {
   useEffect(() => {
     setProductFilter('all');
   }, [filters.category]);
-
+  
   // Calculate total reviews for the bar chart
   const totalReviews = useMemo(() => 
     ratingDistribution.reduce((sum, item) => sum + (item.count || 0), 0) || 1, // Éviter division par zéro
@@ -351,9 +351,9 @@ const CustomerSatisfaction: React.FC = () => {
         ...meta.categories
           .filter(cat => filters.state === 'all' || availableCategories.includes(cat.toLowerCase()))
           .map(cat => ({ 
-            value: cat.toLowerCase(), 
+          value: cat.toLowerCase(), 
             label: formatCategoryName(cat) 
-          }))
+        }))
       ],
       value: filters.category,
       onChange: (value: string) => setFilters({ category: value })
@@ -365,9 +365,9 @@ const CustomerSatisfaction: React.FC = () => {
         ...meta.states
           .filter(state => filters.category === 'all' || availableRegions.includes(state.toLowerCase()))
           .map(state => ({ 
-            value: state.toLowerCase(), 
-            label: state 
-          }))
+          value: state.toLowerCase(), 
+          label: state 
+        }))
       ],
       value: filters.state,
       onChange: (value: string) => setFilters({ state: value })
@@ -459,89 +459,89 @@ const CustomerSatisfaction: React.FC = () => {
         </Card>
       ) : (
         <>
-          {/* KPIs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <KpiCard
-              title="Délai moyen livraison"
+      {/* KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <KpiCard
+          title="Délai moyen livraison"
               value={
                 isNaN(filteredKpis.averageDeliveryTime) || filteredKpis.averageDeliveryTime === undefined
                   ? 'N/A'
                   : `${filteredKpis.averageDeliveryTime.toFixed(1)} jours`
               }
-              trend={{ direction: 'down', value: '-0.3j vs last month' }}
+          trend={{ direction: 'down', value: '-0.3j vs last month' }}
               icon={<Clock size={20} />}
-            />
-            <KpiCard
-              title="Livraisons en retard"
+        />
+        <KpiCard
+          title="Livraisons en retard"
               value={
                 isNaN(filteredKpis.percentLateDeliveries) || filteredKpis.percentLateDeliveries === undefined
                   ? 'N/A'
                   : `${filteredKpis.percentLateDeliveries.toFixed(1)}%`
               }
-              trend={{ direction: 'down', value: '-2.1% vs last month' }}
+          trend={{ direction: 'down', value: '-2.1% vs last month' }}
               icon={<MapPinX size={20} />}
-            />
-            <KpiCard
-              title="Note moyenne"
+        />
+        <KpiCard
+          title="Note moyenne"
               value={
                 isNaN(filteredKpis.averageCustomerRating) || filteredKpis.averageCustomerRating === undefined
                   ? 'N/A'
                   : `${filteredKpis.averageCustomerRating.toFixed(1)}/5`
               }
-              trend={{ direction: 'up', value: '+0.2 vs last month' }}
+          trend={{ direction: 'up', value: '+0.2 vs last month' }}
               icon={<Star size={20} />}
-            />
-            <KpiCard
-              title="Avis négatifs"
+        />
+        <KpiCard
+          title="Avis négatifs"
               value={
                 isNaN(filteredKpis.negativeReviews) || filteredKpis.negativeReviews === undefined
                   ? 'N/A'
                   : formatNumber(filteredKpis.negativeReviews)
               }
               icon={<ThumbsDown size={20} />}
-              trend={{ direction: 'down', value: '-5% vs last month' }}
-              description="Notes ≤ 2"
-            />
-          </div>
-          
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Customer Ratings Distribution */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium">
-                  <div className="flex items-center">
-                    <Star className="mr-2 text-dashboard-purple" size={18} />
-                    Distribution des scores clients
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+          trend={{ direction: 'down', value: '-5% vs last month' }}
+          description="Notes ≤ 2"
+        />
+      </div>
+      
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Customer Ratings Distribution */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">
+              <div className="flex items-center">
+                <Star className="mr-2 text-dashboard-purple" size={18} />
+                Distribution des scores clients
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
                 {!hasRatedProducts ? (
                   <NoRatingsMessage />
                 ) : (
-                  <BarChart
+            <BarChart
                     data={ratingDistributionData}
-                    xAxisDataKey="rating"
-                    bars={[
+              xAxisDataKey="rating"
+              bars={[
                       { dataKey: "count", name: "Nombre d'avis" }
-                    ]}
-                  />
+              ]}
+            />
                 )}
-              </CardContent>
-            </Card>
-            
-            {/* Delivery vs Rating Scatter Plot */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium">
-                  <div className="flex items-center">
-                    <Clock className="mr-2 text-dashboard-purple" size={18} />
-                    Délai de livraison vs Note client
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+          </CardContent>
+        </Card>
+        
+        {/* Delivery vs Rating Scatter Plot */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">
+              <div className="flex items-center">
+                <Clock className="mr-2 text-dashboard-purple" size={18} />
+                Délai de livraison vs Note client
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
                 {filters.category === 'all' ? (
                   <div className="flex flex-col items-center justify-center h-[300px] text-center p-4">
                     <div className="text-muted-foreground mb-2">
@@ -555,47 +555,47 @@ const CustomerSatisfaction: React.FC = () => {
                 ) : !hasScatterData ? (
                   <NoRatingsMessage />
                 ) : (
-                  <ScatterPlot
+            <ScatterPlot
                     data={scatterPlotData}
-                    xAxisDataKey="deliveryTime"
-                    yAxisDataKey="rating"
-                    zAxisDataKey="price"
-                    name="Produits"
-                  />
+              xAxisDataKey="deliveryTime"
+              yAxisDataKey="rating"
+              zAxisDataKey="price"
+              name="Produits"
+            />
                 )}
-              </CardContent>
-            </Card>
-          </div>
-          
-          {/* Best and Worst Rated Products Tables */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Best Rated Products */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium">
-                  <div className="flex items-center">
-                    <Star className="mr-2 text-dashboard-green" size={18} />
-                    Top 5 produits les mieux notés
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Best and Worst Rated Products Tables */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Best Rated Products */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">
+              <div className="flex items-center">
+                <Star className="mr-2 text-dashboard-green" size={18} />
+                Top 5 produits les mieux notés
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
                 {!hasRatedProducts ? (
                   <div className="py-8">
                     <NoRatingsMessage />
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Produit</TableHead>
-                        <TableHead>Catégorie</TableHead>
-                        <TableHead className="text-right">Note</TableHead>
-                        <TableHead className="text-right">Délai (j)</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Produit</TableHead>
+                  <TableHead>Catégorie</TableHead>
+                  <TableHead className="text-right">Note</TableHead>
+                  <TableHead className="text-right">Délai (j)</TableHead>
                         <TableHead className="text-right">Ventes</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                       {bestRatedProducts.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={4} className="text-center text-muted-foreground">
@@ -604,7 +604,7 @@ const CustomerSatisfaction: React.FC = () => {
                         </TableRow>
                       ) : (
                         bestRatedProducts.map((product) => (
-                          <TableRow key={product.id}>
+                  <TableRow key={product.id}>
                             <TableCell className="font-medium">{product.name || "Sans nom"}</TableCell>
                             <TableCell>{formatCategoryName(product.category)}</TableCell>
                             <TableCell className="text-right">
@@ -616,45 +616,45 @@ const CustomerSatisfaction: React.FC = () => {
                             <TableCell className="text-right">
                               {typeof product.deliveryTime === 'number' ? Math.ceil(product.deliveryTime) : "N/A"}
                             </TableCell>
-                            <TableCell className="text-right">
+                    <TableCell className="text-right">
                               {typeof product.orders === 'number' ? Math.ceil(product.orders) : "N/A"}
-                            </TableCell>
-                          </TableRow>
+                    </TableCell>
+                  </TableRow>
                         ))
                       )}
-                    </TableBody>
-                  </Table>
+              </TableBody>
+            </Table>
                 )}
-              </CardContent>
-            </Card>
-            
-            {/* Worst Rated Products */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium">
-                  <div className="flex items-center">
+          </CardContent>
+        </Card>
+        
+        {/* Worst Rated Products */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">
+              <div className="flex items-center">
                     <Star className="mr-2 text-dashboard-red" size={18} />
                     Top 5 produits les moins bien notés
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
                 {!hasRatedProducts ? (
                   <div className="py-8">
                     <NoRatingsMessage />
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Produit</TableHead>
-                        <TableHead>Catégorie</TableHead>
-                        <TableHead className="text-right">Note</TableHead>
-                        <TableHead className="text-right">Délai (j)</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Produit</TableHead>
+                  <TableHead>Catégorie</TableHead>
+                  <TableHead className="text-right">Note</TableHead>
+                  <TableHead className="text-right">Délai (j)</TableHead>
                         <TableHead className="text-right">Ventes</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                       {worstRatedProducts.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={4} className="text-center text-muted-foreground">
@@ -663,7 +663,7 @@ const CustomerSatisfaction: React.FC = () => {
                         </TableRow>
                       ) : (
                         worstRatedProducts.map((product) => (
-                          <TableRow key={product.id}>
+                  <TableRow key={product.id}>
                             <TableCell className="font-medium">{product.name || "Sans nom"}</TableCell>
                             <TableCell>{formatCategoryName(product.category)}</TableCell>
                             <TableCell className="text-right">
@@ -675,18 +675,18 @@ const CustomerSatisfaction: React.FC = () => {
                             <TableCell className="text-right">
                               {typeof product.deliveryTime === 'number' ? Math.ceil(product.deliveryTime) : "N/A"}
                             </TableCell>
-                            <TableCell className="text-right">
+                    <TableCell className="text-right">
                               {typeof product.orders === 'number' ? Math.ceil(product.orders) : "N/A"}
-                            </TableCell>
-                          </TableRow>
+                    </TableCell>
+                  </TableRow>
                         ))
                       )}
-                    </TableBody>
-                  </Table>
+              </TableBody>
+            </Table>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+          </CardContent>
+        </Card>
+      </div>
         </>
       )}
     </DashboardLayout>

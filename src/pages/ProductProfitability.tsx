@@ -259,7 +259,7 @@ const ProductProfitability: React.FC = () => {
       } catch (e) {
         console.warn(`Erreur de calcul pour la catégorie ${name}:`, e);
       }
-      
+
       return {
         id: index + 1,
         name: formatCategoryName(name),  // Formater le nom de catégorie pour l'affichage
@@ -271,7 +271,7 @@ const ProductProfitability: React.FC = () => {
         profitRatio: isNaN(profitRatio) ? 0 : profitRatio
       };
     });
-    
+
     // If no filtered categories, return all categories
     return result.length > 0 ? result : categories;
   }, [filteredProducts, categories, formatCategoryName]);
@@ -459,7 +459,7 @@ const ProductProfitability: React.FC = () => {
     });
     setProductFilter("all");
   };
-
+  
   return (
     <DashboardLayout title="Profitabilité des produits">
       {/* Filters */}
@@ -473,10 +473,10 @@ const ProductProfitability: React.FC = () => {
         </Card>
       ) : (
         <>
-          {/* KPIs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <KpiCard
-              title="Prix moyen par catégorie"
+      {/* KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <KpiCard
+          title="Prix moyen par catégorie"
               value={
                 isNaN(filteredKpis.averagePricePerCategory) || filteredKpis.averagePricePerCategory === undefined
                   ? 'N/A'
@@ -484,8 +484,8 @@ const ProductProfitability: React.FC = () => {
               }
               icon={<BarChartIcon size={20} />}
               trend={{ direction: 'up', value: '+1.2% vs last month' }}
-            />
-            <KpiCard
+        />
+        <KpiCard
               title="Coût moyen d'expédition"
               value={
                 isNaN(filteredKpis.averageShippingCost) || filteredKpis.averageShippingCost === undefined
@@ -494,8 +494,8 @@ const ProductProfitability: React.FC = () => {
               }
               icon={<DollarSign size={20} />}
               trend={{ direction: 'down', value: '-0.3% vs last month' }}
-            />
-            <KpiCard
+        />
+        <KpiCard
               title="Indicateur de rentabilité"
               value={
                 isNaN(filteredKpis.averageProfitRatio) || filteredKpis.averageProfitRatio === undefined
@@ -505,8 +505,8 @@ const ProductProfitability: React.FC = () => {
               description="(Prix - Coût) / Prix"
               icon={<Sigma size={20} />}
               trend={{ direction: 'up', value: '+0.5% vs last month' }}
-            />
-            <KpiCard
+        />
+        <KpiCard
               title="Note moyenne"
               value={
                 isNaN(filteredKpis.averageCustomerRating) || filteredKpis.averageCustomerRating === undefined
@@ -515,11 +515,11 @@ const ProductProfitability: React.FC = () => {
               }
               icon={<Star size={20} />}
               trend={{ direction: 'down', value: '-0.1 vs last month' }}
-            />
-          </div>
-          
+        />
+      </div>
+      
           {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Category Performance */}
             <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm">
               {filters.category !== 'all' && filteredCategories.length === 1 ? (
@@ -531,12 +531,12 @@ const ProductProfitability: React.FC = () => {
                       {formatPercent(filteredCategories[0].profitRatio * 100)}
                     </div>
                     <div className="text-muted-foreground">Ratio de profit de la catégorie</div>
-                  </div>
+              </div>
                 </>
               ) : (
                 <>
                   <h3 className="text-lg font-medium mb-4">Performance par catégorie</h3>
-                  <BarChart
+            <BarChart
                     data={[...filteredCategories]
                       .filter(c => !isNaN(c.profitRatio))
                       .sort((a, b) => b.profitRatio - a.profitRatio)
@@ -546,7 +546,7 @@ const ProductProfitability: React.FC = () => {
                         name: formatCategoryName(category.name),
                         profitRatio: parseFloat((category.profitRatio * 100).toFixed(1))
                       }))}
-                    xAxisDataKey="name"
+              xAxisDataKey="name"
                     bars={[{ dataKey: "profitRatio", name: "Ratio de profit" }]}
                     formatTooltipValue={(value, name) => {
                       if (name === "Ratio de profit") {
@@ -563,20 +563,20 @@ const ProductProfitability: React.FC = () => {
             {/* Price vs Rating Scatter */}
             <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm">
               <h3 className="text-lg font-medium mb-4">Prix vs Note client</h3>
-              <ScatterPlot
+            <ScatterPlot
                 data={filteredProducts.filter(p => 
                   typeof p.price === 'number' && !isNaN(p.price) &&
                   typeof p.rating === 'number' && !isNaN(p.rating) &&
                   typeof p.shippingCost === 'number' && !isNaN(p.shippingCost)
                 )}
-                xAxisDataKey="price"
+              xAxisDataKey="price"
                 yAxisDataKey="rating"
                 zAxisDataKey="shippingCost"
-                name="Produits"
-              />
+              name="Produits"
+            />
             </div>
-          </div>
-          
+      </div>
+      
           {/* Top Products Table */}
           <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm mb-6">
             <h3 className="text-lg font-medium mb-4">Top 10 produits les plus rentables</h3>
@@ -631,7 +631,7 @@ const ProductProfitability: React.FC = () => {
                 )}
               </TableBody>
             </Table>
-          </div>
+      </div>
         </>
       )}
     </DashboardLayout>

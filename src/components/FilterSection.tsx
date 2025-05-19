@@ -30,8 +30,8 @@ const FilterSection: React.FC<FilterSectionProps> = memo(({ filters, onReset }) 
     <div className="bg-white dark:bg-gray-950 p-4 rounded-lg border dark:border-gray-800 shadow-sm mb-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
-          <Filter size={16} className="text-dashboard-purple dark:text-violet-400 mr-2" />
-          <h3 className="font-medium text-sm dark:text-gray-200">Filtres</h3>
+        <Filter size={16} className="text-dashboard-purple dark:text-violet-400 mr-2" />
+        <h3 className="font-medium text-sm dark:text-gray-200">Filtres</h3>
         </div>
         {onReset && (
           <Button 
@@ -63,7 +63,7 @@ const FilterSection: React.FC<FilterSectionProps> = memo(({ filters, onReset }) 
                 {filter.options.length > 0 ? (
                   filter.options.map((option) => (
                     <SelectItem key={`${filter.name}-${option.value}`} value={option.value}>
-                      {option.label}
+                    {option.label}
                     </SelectItem>
                   ))
                 ) : (
