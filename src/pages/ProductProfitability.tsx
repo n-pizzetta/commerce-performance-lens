@@ -599,7 +599,7 @@ const ProductProfitability: React.FC = () => {
                 // Affichage des métriques pour un produit sélectionné
                 <>
                   <h3 className="text-lg font-medium mb-4">Performance du produit</h3>
-                  <div className="flex flex-col items-center justify-center h-full">
+                  <div className="flex flex-col items-center justify-center h-[150px]">
                     {filteredProducts.length > 0 && (
                       <>
                         <div className="text-2xl font-bold mb-2">{filteredProducts[0].name}</div>
@@ -621,7 +621,7 @@ const ProductProfitability: React.FC = () => {
                 // Affichage des métriques pour une catégorie sélectionnée
                 <>
                   <h3 className="text-lg font-medium mb-4">Performance de la catégorie</h3>
-                  <div className="flex flex-col items-center justify-center h-full">
+                  <div className="flex flex-col items-center justify-center h-[150px]">
                     <div className="text-2xl font-bold mb-2">{filteredCategories[0].name}</div>
                     <div className="text-4xl font-extrabold text-dashboard-green mb-2">
                       {formatPercent(filteredCategories[0].profitRatio * 100)}

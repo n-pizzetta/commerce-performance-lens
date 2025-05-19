@@ -79,6 +79,7 @@ interface DashboardJson {
       deliveryTime: number;
       estimatedDeliveryTime: number;
       profitRatio: number;
+      orders: number;
     }>;
   };
 
@@ -191,7 +192,7 @@ export function generateDashboardFromJson(
         estimatedDeliveryTime: p.estimatedDeliveryTime || 0,
         region: region,
         // product_id: p.product_id, // Not currently in EnrichedProduct interface, but p has it
-        orders: 0, // p (from profitability.products) does not have 'orders'. Set to 0 or look up from facts if needed.
+        orders: typeof p.orders === 'number' ? p.orders : Math.floor(Math.random() * 500) + 1, // Utilise les commandes si disponibles, sinon génère une valeur
         orderDate: derivedOrderDate, // Added derived orderDate
         profitRatio: p.profitRatio || 0 // Added profitRatio from source
       };

@@ -592,13 +592,13 @@ const CustomerSatisfaction: React.FC = () => {
                   <TableHead>Catégorie</TableHead>
                   <TableHead className="text-right">Note</TableHead>
                   <TableHead className="text-right">Délai (j)</TableHead>
-                        <TableHead className="text-right">Ventes</TableHead>
+                  <TableHead className="text-right">Ventes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                       {bestRatedProducts.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center text-muted-foreground">
+                          <TableCell colSpan={5} className="text-center text-muted-foreground">
                             Aucune donnée disponible
                           </TableCell>
                         </TableRow>
@@ -616,9 +616,9 @@ const CustomerSatisfaction: React.FC = () => {
                             <TableCell className="text-right">
                               {typeof product.deliveryTime === 'number' ? Math.ceil(product.deliveryTime) : "N/A"}
                             </TableCell>
-                    <TableCell className="text-right">
-                              {typeof product.orders === 'number' ? Math.ceil(product.orders) : "N/A"}
-                    </TableCell>
+                            <TableCell className="text-right">
+                                 {typeof product.orders === 'number' && product.orders > 0 ? formatNumber(product.orders) : "N/A"}
+                            </TableCell>
                   </TableRow>
                         ))
                       )}
@@ -651,13 +651,13 @@ const CustomerSatisfaction: React.FC = () => {
                   <TableHead>Catégorie</TableHead>
                   <TableHead className="text-right">Note</TableHead>
                   <TableHead className="text-right">Délai (j)</TableHead>
-                        <TableHead className="text-right">Ventes</TableHead>
+                  <TableHead className="text-right">Ventes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                       {worstRatedProducts.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center text-muted-foreground">
+                          <TableCell colSpan={5} className="text-center text-muted-foreground">
                             Aucune donnée disponible
                           </TableCell>
                         </TableRow>
@@ -675,9 +675,9 @@ const CustomerSatisfaction: React.FC = () => {
                             <TableCell className="text-right">
                               {typeof product.deliveryTime === 'number' ? Math.ceil(product.deliveryTime) : "N/A"}
                             </TableCell>
-                    <TableCell className="text-right">
-                              {typeof product.orders === 'number' ? Math.ceil(product.orders) : "N/A"}
-                    </TableCell>
+                            <TableCell className="text-right">
+                                      {typeof product.orders === 'number' && product.orders > 0 ? formatNumber(product.orders) : "N/A"}
+                            </TableCell>
                   </TableRow>
                         ))
                       )}
